@@ -72,10 +72,6 @@ def twolistpath(list1, list2, M):
                     x.append(sublist[1])
                     M.append(x)
         list1.pop()
-        if len(M) < 10:
-            twolistpath(list1, list2, M)
-        else:
-            return M
     return M
 
 # following creates the lists between bounds where MG's can be repeated. For example, if bds1 is related to MGI 0 and bds2 is related to MGI 1, this will find all of the paths in the PG that go from 0 to 1 where 0 can be repeated as many times as needes but 1 cannot. Additionally, the paths cannot go through a PG node more than once. Returns lists of PGI. 
