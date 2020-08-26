@@ -2,6 +2,8 @@
 # Elizabeth Andreas
 # MIT LICENSE 2020
 
+from funforMGpaths import *
+
 class stats:
     def __init__(self, database, MGtype, FPonly_YorN):
         self.database = database
@@ -52,3 +54,30 @@ class stats:
         else:
             perc = [round((x/self.count_FPonly)*100,2) for x in self.total_each]
         return perc
+
+class stats_on_Paths:
+    def __init__(self, Path):
+        self.Path = flatten(Path)
+    
+    def distinct(self):
+        return list(dict.fromkeys(self.Path))
+
+    def total(self):    
+        frequencies = {}
+        for item in self.Path:
+            if item in frequencies:
+                frequencies[item] += 1
+            else:
+                frequencies[item] = 1
+        return frequencies
+    
+    def percentage(self):
+        frequencies = {}
+        for item in self.Path:
+            if item in frequencies:
+                frequencies[item] += 1/len(self.Path)*100
+            else:
+                frequencies[item] = 1/len(self.Path)*100
+        return frequencies
+
+
