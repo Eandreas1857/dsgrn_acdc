@@ -72,7 +72,10 @@ def twolistpath(list1, list2, M):
                     x.append(sublist[1])
                     M.append(x)
         list1.pop()
-        twolistpath(list1, list2, M)
+        if len(M) < 100:
+            twolistpath(list1, list2, M)
+        else:
+            return M
  
         return M
     return M
@@ -165,6 +168,40 @@ def final(set_of_paths):
         M = listpath(set_of_paths)
         F = [M,*set_of_paths[2:]]
         return F
+
+def find_all_paths(edges,start_set,stop_set, path_length):
+    count = 0
+    def find_paths(path, path_length):
+        
+        '''
+        Recursive function that finds all paths from a starting parameter to any ending parameter in a set. This only works on a connected graph and does not repeat nodes in any path.
+        :param path: A list containing the parameter node at which to start.
+        :return: Side-effect list.
+        '''
+        if path[-1] in stop_set:
+            print(len(path))
+            if len(path) <= path_length:
+                paths.append(path)
+        else:
+            for n in comp_edges[path[-1]]:
+                if paths == []:
+                    
+                    if n not in path:
+                        find_paths(path + [n], path_length)
+                else:
+                    break
+        return None
+
+    paths = []
+    for start in start_set:
+        if paths == []:
+            count +=1
+            print(count)
+            comp_edges = get_connected_component(start,edges)
+            find_paths([start], path_length)
+        else:
+            break
+    return paths
 
 
 
