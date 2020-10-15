@@ -5,6 +5,7 @@ from NFixedPointQuery import NFixedPointQuery
 from copy import deepcopy
 
 
+
 def flatten(list2flatten):
     '''
     The following takes a list of lists and turns it into a single list.
@@ -14,6 +15,7 @@ def flatten(list2flatten):
     return list(itertools.chain(*list2flatten))
 
 def get_paramslist(database, list_of_bounds, goe):
+    
     paramslist = []
     c = database.conn.cursor()
     for i in range(len(list_of_bounds)):
@@ -39,10 +41,11 @@ def get_paramslist(database, list_of_bounds, goe):
             PGI1 = [(i,n) for n in PGI1 if n not in flat_p]
             paramslist.append(PGI1.copy())
         else:
+            
             print('EMPTY LIST', list_of_bounds[i])
             break
 
-        
+       
     return paramslist
 
 
