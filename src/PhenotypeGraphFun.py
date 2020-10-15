@@ -35,7 +35,8 @@ def get_paramslist(database, list_of_bounds, goe):
         c.execute('drop table C')
         if PGI1 !=[]:
             p = deepcopy(paramslist)
-            PGI1 = [(i,n) for n in PGI1 if n not in flatten(p)]
+            flat_p = flatten(p)
+            PGI1 = [(i,n) for n in PGI1 if n not in flat_p]
             paramslist.append(PGI1.copy())
         else:
             print('EMPTY LIST', list_of_bounds[i])
@@ -57,23 +58,32 @@ def get_phenotype_graph(database,paramslist,repeat_layer=True):
     edge_paramslist = []
     for layer in paramslist:
         edge_paramslist.append( [i[-1] for i in layer ])
+
     pg = DSGRN.ParameterGraph(database.network)
+
     # name nodes according to layer and dsgrn parameter
-    todo = [(k,p) for k,plist in enumerate(edge_paramslist[:-1]) for p in plist]
-    nodes = [(k,p) for k,plist in enumerate(edge_paramslist) for p in plist]
-    edges = dict.fromkeys(nodes,[])
+    todo = [(k,p) for k,plist in enumerate(edge_paramslist) for p in plist]
+    
+    edges = dict.fromkeys(todo,[])
+    
     while todo:
         (k,p) = todo.pop(0)
         # record all allowable steps in the mg layers
-        next_mg_steps = [(k+1,q) for q in edge_paramslist[k+1]]
+        if k+2<=len(edge_paramslist):
+            next_mg_steps = [(k+1,q) for q in edge_paramslist[k+1]]
+        else:
+            next_mg_steps = [(k,q) for q in edge_paramslist[k] if q != p]
         if repeat_layer:
             next_mg_steps += [(k,q) for q in edge_paramslist[k] if q != p]
         # find neighboring parameters using DSGRN adjacencies function to get all possible neighbors
         # accounting for the same parameter in adjacent layers
-        adj = list(pg.adjacencies(p))
+        
+        adj = list(pg.adjacencies(p,'codim1'))
         possible_neighbors = [(k+1,q) for q in adj + [p]] + [(k,q) for q in adj]
+
         # intersect neighbors with parameters that have allowable MGs
         edges[(k,p)] = list(set(next_mg_steps).intersection(possible_neighbors))
+
     return edges
 
 def reduce_graph(edges):

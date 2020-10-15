@@ -108,11 +108,10 @@ def reduce(edges, paramslist):
         if vert in reduced_edges[vert]:
             reduced_edges[vert].remove(vert)
     
-    reduced_paramslist = deepcopy(paramslist)
-    for grps in scc:
-        for level in range(len(paramslist)):
-            for item in paramslist[level]:
-                if item in grps and item != grps[0]:
-                    reduced_paramslist[level].remove(item)
+    reduced_paramslist = []
+    for layer in paramslist:
+        p = [s[0] for s in scc if s[0] in layer] 
+        p += [l for l in layer if l not in flatten(scc)]
+        reduced_paramslist.append(p)
 
     return reduced_edges, reduced_paramslist, stronglycc

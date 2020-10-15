@@ -19,7 +19,7 @@ class PGGraph:
     vertices = set(range(0,pg.size()))
     edges = set()
     for gpi1 in vertices:
-        for gpi2 in pg.adjacencies(gpi1):
+        for gpi2 in pg.adjacencies(gpi1, 'codim1'):
             if (gpi2,gpi1) not in edges:
                 edges = edges.union({(gpi1, gpi2)})
             
