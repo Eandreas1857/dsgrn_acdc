@@ -58,26 +58,27 @@ def get_phenotype_graph(database,paramslist,repeat_layer=True):
     :param database: DSGRN.Database object
     :return: Dictionary with DSGRN parameter indices (nodes) keying lists of DSGRN parameter indices (out-edges). In other words, each (key, list_element) pair is an edge in a graph. Every edge satisfies the correct bounds relationship indicated by the order of the parameter lists.
     '''
-    edge_paramslist = []
-    for layer in paramslist:
-        edge_paramslist.append( [i[-1] for i in layer ])
-
+    
+    
     pg = DSGRN.ParameterGraph(database.network)
 
     # name nodes according to layer and dsgrn parameter
-    todo = [(k,p) for k,plist in enumerate(edge_paramslist) for p in plist]
-    
+    todo = flatten(paramslist)
     edges = dict.fromkeys(todo,[])
     
+    next_steps_dict = {}
+    for k in range(len(paramslist)):
+        if k+2<=len(paramslist):
+            next_steps_dict[k] = [q for q in paramslist[k+1]]
+        else:
+            next_steps_dict[k] = [q for q in paramslist[k]]
+        if repeat_layer:
+            next_steps_dict[k] += [q for q in paramslist[k]]
+            
     while todo:
         (k,p) = todo.pop(0)
         # record all allowable steps in the mg layers
-        if k+2<=len(edge_paramslist):
-            next_mg_steps = [(k+1,q) for q in edge_paramslist[k+1]]
-        else:
-            next_mg_steps = [(k,q) for q in edge_paramslist[k] if q != p]
-        if repeat_layer:
-            next_mg_steps += [(k,q) for q in edge_paramslist[k] if q != p]
+        next_mg_steps = [i for i in next_steps_dict[k] if i[-1]!=p]
         # find neighboring parameters using DSGRN adjacencies function to get all possible neighbors
         # accounting for the same parameter in adjacent layers
         
