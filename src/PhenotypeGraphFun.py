@@ -57,9 +57,7 @@ def get_phenotype_graph(database,paramslist,repeat_layer=True):
     :param paramslist: A list of lists of DSGRN parameter indices. The lists must be in the same order as the desired bounds.
     :param database: DSGRN.Database object
     :return: Dictionary with DSGRN parameter indices (nodes) keying lists of DSGRN parameter indices (out-edges). In other words, each (key, list_element) pair is an edge in a graph. Every edge satisfies the correct bounds relationship indicated by the order of the parameter lists.
-    '''
-    
-    
+    ''' 
     pg = DSGRN.ParameterGraph(database.network)
 
     # name nodes according to layer and dsgrn parameter
@@ -88,6 +86,63 @@ def get_phenotype_graph(database,paramslist,repeat_layer=True):
         # intersect neighbors with parameters that have allowable MGs
         edges[(k,p)] = list(set(next_mg_steps).intersection(possible_neighbors))
 
+    return edges
+
+def get_paramslist_optimized(database, list_of_bounds, goe):
+    paramslist = []
+    c = database.conn.cursor()
+    for i in range(len(list_of_bounds)):
+        bounds1 = list_of_bounds[i]
+        NFP = NFixedPointQuery(database, *bounds1).matches()
+        if goe == '=':
+            N = len(bounds1)
+            X1 = NstableQuery(database, N).matches()
+            X2 = NstableQuery(database, N + 1).matches()
+            inter = set(X1.difference(X2))
+            MGset = [j for j in inter if j in NFP]
+        else:
+            MGset = list(NFP)
+
+        string = 'create temp table C as select * from Signatures where MorseGraphIndex in ({seq})'.format(
+            seq=','.join(['?'] * len(MGset)))
+        c.execute(string, MGset)
+        PGI1 = [row[0] for row in c.execute('select ParameterIndex from C')]
+        c.execute('drop table C')
+        if PGI1:
+            paramslist.append([(i, n) for n in PGI1])
+        else:
+            print('EMPTY LIST', list_of_bounds[i])
+            paramslist = None
+            break
+    return paramslist
+
+def get_phenotype_graph_optimized(database, paramslist, repeat_layer=True):
+    '''
+    Perform successive intersections of allowable parameter transitions with codimension 1 parameter adjacencies. This results in a list of pairs of neighboring parameters with the desired bounds properties. Allows repeats of bound matches except for the last list. The result is saved as a graph, making the end result amenable to graph searches.
+    :param database: DSGRN.Database object
+    :param paramslist: A list of lists of (layer number, DSGRN parameter index) pairs.
+    :param repeat_layer: allow repeated bounds matches except at the last layer.
+    :return: Dictionary with (layer number, DSGRN parameter index) pairs keying lists of (layer number, DSGRN parameter index) pairs that represents the phenotype graph. In other words, each (key, list_element) pair is an edge in a graph. Every edge satisfies the correct bounds relationship indicated by the order of the parameter lists.
+    '''
+
+    pg = DSGRN.ParameterGraph(database.network)
+    todo = list(itertools.chain.from_iterable(paramslist))
+    edges = dict.fromkeys(todo, [])
+
+    while todo:
+        (k, p) = todo.pop(0)
+        # record all allowable steps in the mg layers
+        next_mg_steps = paramslist[k+1][:] if k < len(paramslist)-1 else []
+        if repeat_layer:
+            next_mg_steps += paramslist[k][:]
+        # find neighboring parameters using DSGRN adjacencies function to get all possible neighbors
+        # accounting for the same parameter in adjacent layers
+        adj = list(pg.adjacencies(p, 'codim1'))
+        possible_neighbors = [(k + 1, q) for q in adj + [p]]
+        if repeat_layer:
+            possible_neighbors += [(k, q) for q in adj]
+        # intersect neighbors with parameters that have allowable MGs
+        edges[(k, p)] = list(set(next_mg_steps).intersection(possible_neighbors))
     return edges
 
 def reduce_graph(edges):

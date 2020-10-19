@@ -82,22 +82,23 @@ class ReducePhenotypeGraph:
         return(all_connected)
 
 def reduce(edges, paramslist):
-    edges_dc = deepcopy(edges)
+    reduced_edges = deepcopy(edges)
     g = ReducePhenotypeGraph(max(edges)[-1]+1, edges)
     g.add_edges(edges)
     
     scc = g.scc()
     
     stronglycc = [i for i in scc if len(i) != 1]
-    
+
     reduced_edges = {}
-    for s in stronglycc:
-        for i in s:
-            if i in edges:
-                if s[0] not in reduced_edges:
-                    reduced_edges[s[0]] = edges_dc[i] 
-                else:
-                    reduced_edges[s[0]] += edges_dc[i]  
+    for grps in stronglycc:
+        for vert in edges:
+            if vert in grps:
+                if edges[grps[0]] != edges[vert]:
+                    reduced_edges[grps[0]] += [n for n in edges[vert] if n not in edges[grps[0]] ]
+                for j in range(len(grps)-1):
+                    if (grps)[j+1] in reduced_edges:
+                        reduced_edges.pop((grps)[j+1])
 
     for vert in reduced_edges:
         for k in range(len(reduced_edges[vert])):
@@ -109,10 +110,9 @@ def reduce(edges, paramslist):
             reduced_edges[vert].remove(vert)
     
     reduced_paramslist = []
-    flat_scc = flatten(scc)
     for layer in paramslist:
         p = [s[0] for s in scc if s[0] in layer] 
-        p += [l for l in layer if l not in flat_scc]
+        p += [l for l in layer if l not in flatten(scc)]
         reduced_paramslist.append(p)
 
     return reduced_edges, reduced_paramslist, stronglycc
