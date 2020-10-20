@@ -112,7 +112,8 @@ def condensation_graph_optimized(edges):
     # stronglycc has layer integers for keys
     stronglycc = {}
     for vertices in vertices_by_layer:
-        stronglycc[vertices[0][0]] = [scc for scc in stronglycc_iterative(vertices, edges) if scc != []]
+        layer_edges = { node : [e for e in edges[node] if e[0] == node[0]] for node in vertices}
+        stronglycc[vertices[0][0]] = [scc for scc in stronglycc_iterative(vertices, layer_edges) if scc != []]
 
     # make condensation graph
     condensation = {}
