@@ -1,3 +1,5 @@
+import itertools
+
 
 def stronglycc_iterative(vertices, edges):
     """
@@ -70,23 +72,24 @@ def condensation_graph(edges, paramslist):
     '''
     Computes condensation of edges into its strongly connected components.
     :param edges: Dictionary with (layer number, DSGRN parameter index) pairs keying lists of (layer number, DSGRN parameter index) pairs that represents the phenotype graph. In other words, each (key, list_element) pair is an edge in a graph. Every edge satisfies the correct bounds relationship indicated by the order of the parameter lists.
-    :param paramslist: A list of lists of (layer number, DSGRN parameter index) pairs. 
+    :param paramslist: A list of lists of (layer number, DSGRN parameter index) pairs.
 
     '''
     vertices = [p for p in edges]
-    #compute strongly connected components
-    stronglycc = [scc for scc in stronglycc_iterative(vertices, edges) if scc !=[]]
+    # compute strongly connected components
+    stronglycc = [scc for scc in stronglycc_iterative(vertices, edges) if scc != []]
 
-    #collapse phenotype graph dict key's to first item in strongly connected groups
+    # collapse phenotype graph dict key's to first item in strongly connected groups
     condensation = {}
     for s in stronglycc:
         condensation[s[0]] = list(set([i for j in s for i in edges[j] if i != s[0]]))
 
-    #collapse phenotype graph dict list_element to first item in strongly connected groups
+    # collapse phenotype graph dict list_element to first item in strongly connected groups
     for i in condensation:
-        condensation[i] = list(set([s[0] for j in range(len(condensation[i])) for s in stronglycc if condensation[i][j] in s and i != s[0]]))
-    
-    #also give a reduction of the phenotype pattern
+        condensation[i] = list(set(
+            [s[0] for j in range(len(condensation[i])) for s in stronglycc if condensation[i][j] in s and i != s[0]]))
+
+    # also give a reduction of the phenotype pattern
     reduced_paramslist = []
     for layer in paramslist:
         p = [s[0] for s in stronglycc if s[0] in layer]
@@ -94,11 +97,19 @@ def condensation_graph(edges, paramslist):
 
     return condensation, reduced_paramslist, stronglycc
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> b87ede7cba2ae9fba54ba1ce66a621f0edc7f28e
 def condensation_graph_optimized(edges):
     '''
     Computes condensation of edges into its strongly connected components.
     :param edges: Dictionary with (layer number, DSGRN parameter index) pairs keying lists of (layer number, DSGRN parameter index) pairs that represents the phenotype graph. In other words, each (key, list_element) pair is an edge in a graph. Every edge satisfies the correct bounds relationship indicated by the order of the parameter lists.
     :param paramslist: A list of lists of (layer number, DSGRN parameter index) pairs.
+<<<<<<< HEAD
+=======
+
+>>>>>>> b87ede7cba2ae9fba54ba1ce66a621f0edc7f28e
     '''
     key = lambda x : x[0]
     vertices_by_layer = sorted([sorted(list(g[1])) for g in itertools.groupby(edges,key)],key=key)
