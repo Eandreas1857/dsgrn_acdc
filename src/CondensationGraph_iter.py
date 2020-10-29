@@ -97,19 +97,13 @@ def condensation_graph(edges, paramslist):
 
     return condensation, reduced_paramslist, stronglycc
 
-<<<<<<< HEAD
-=======
 
->>>>>>> b87ede7cba2ae9fba54ba1ce66a621f0edc7f28e
 def condensation_graph_optimized(edges):
     '''
     Computes condensation of edges into its strongly connected components.
     :param edges: Dictionary with (layer number, DSGRN parameter index) pairs keying lists of (layer number, DSGRN parameter index) pairs that represents the phenotype graph. In other words, each (key, list_element) pair is an edge in a graph. Every edge satisfies the correct bounds relationship indicated by the order of the parameter lists.
     :param paramslist: A list of lists of (layer number, DSGRN parameter index) pairs.
-<<<<<<< HEAD
-=======
 
->>>>>>> b87ede7cba2ae9fba54ba1ce66a621f0edc7f28e
     '''
     key = lambda x : x[0]
     vertices_by_layer = sorted([sorted(list(g[1])) for g in itertools.groupby(edges,key)],key=key)
@@ -146,3 +140,39 @@ def condensation_graph_optimized(edges):
     reduced_paramslist = sorted([sorted(list(g[1])) for g in itertools.groupby(condensation,key)],key=key)
 
     return condensation, reduced_paramslist, stronglycc
+
+def get_phenotype_graph_parallel(database, paramslist, num_processes, repeat_layer=True):
+    '''
+    Perform successive intersections of allowable parameter transitions with codimension 1 parameter adjacencies. This results in a list of pairs of neighboring parameters with the desired bounds properties. Allows repeats of bound matches except for the last list. The result is saved as a graph, making the end result amenable to graph searches.
+    :param database: DSGRN.Database object
+    :param paramslist: A list of lists of (layer number, DSGRN parameter index) pairs.
+    :param num_processes: Numer or cores wanting to use in parallel computing.
+    :param repeat_layer: allow repeated bounds matches except at the last layer.
+    :return: Dictionary with (layer number, DSGRN parameter index) pairs keying lists of (layer number, DSGRN parameter index) pairs that represents the phenotype graph. In other words, each (key, list_element) pair is an edge in a graph. Every edge satisfies the correct bounds relationship indicated by the order of the parameter lists.
+    '''
+
+    pg = DSGRN.ParameterGraph(database.network)
+    todo = list(itertools.chain.from_iterable(paramslist))
+    
+    pool = multiprocessing.Pool(processes=num_processes)
+    work = partial(todo_node, pg = pg, paramslist = paramslist)
+    results = pool.map_async(work, todo)
+
+    edges = {}
+    for m,p in results.get():
+        edges[m] = p
+
+    return edges
+
+def todo_node(node, pg, paramslist, repeat_layer = True):
+    (k,p) = node
+    next_mg_steps = paramslist[k+1][:] if k < len(paramslist)-1 else []
+    if repeat_layer:
+        next_mg_steps += paramslist[k][:]
+    # find neighboring parameters using DSGRN adjacencies function to get all possible neighbors
+    # accounting for the same parameter in adjacent layers
+    adj = list(pg.adjacencies(p, 'codim1'))
+    possible_neighbors = [(k + 1, q) for q in adj + [p]]
+    if repeat_layer:
+        possible_neighbors += [(k, q) for q in adj]
+    return (node, list(set(next_mg_steps).intersection(possible_neighbors)))
