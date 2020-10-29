@@ -93,3 +93,45 @@ def condensation_graph(edges, paramslist):
         reduced_paramslist.append(p)
 
     return condensation, reduced_paramslist, stronglycc
+
+def condensation_graph_optimized(edges):
+    '''
+    Computes condensation of edges into its strongly connected components.
+    :param edges: Dictionary with (layer number, DSGRN parameter index) pairs keying lists of (layer number, DSGRN parameter index) pairs that represents the phenotype graph. In other words, each (key, list_element) pair is an edge in a graph. Every edge satisfies the correct bounds relationship indicated by the order of the parameter lists.
+    :param paramslist: A list of lists of (layer number, DSGRN parameter index) pairs.
+    '''
+    key = lambda x : x[0]
+    vertices_by_layer = sorted([sorted(list(g[1])) for g in itertools.groupby(edges,key)],key=key)
+
+    # compute strongly connected components
+    # stronglycc has layer integers for keys
+    stronglycc = {}
+    for vertices in vertices_by_layer:
+        layer_edges = { node : [e for e in edges[node] if e[0] == node[0]] for node in vertices}
+        stronglycc[vertices[0][0]] = [sorted(scc) for scc in stronglycc_iterative(vertices, layer_edges) if scc != []]
+
+    # make condensation graph
+    condensation = {}
+    for layer,scc_k in stronglycc.items():
+        # scc_k = list of scc's for layer k
+        if layer < len(vertices_by_layer)-1:
+            # scc_kp1 = list of scc's for layer k+1
+            scc_kp1 = stronglycc[layer+1]
+        else:
+            scc_kp1 = []
+        for scc in scc_k:
+            # scc = list of (layer, param)
+            if scc[0] not in condensation:
+                condensation[scc[0]] = []
+            for tcc in scc_k + scc_kp1:
+                # tcc = list of (layer, param)
+                if tcc != scc:
+                    for s in scc:
+                        if set(edges[s]).intersection(tcc):
+                            condensation[scc[0]].append(tcc[0])
+                            break
+
+    # also give a reduction of the phenotype pattern
+    reduced_paramslist = sorted([sorted(list(g[1])) for g in itertools.groupby(condensation,key)],key=key)
+
+    return condensation, reduced_paramslist, stronglycc
