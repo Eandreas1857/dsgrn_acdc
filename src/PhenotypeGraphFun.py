@@ -236,8 +236,20 @@ def get_connected_component(node,edges):
     
     return keepers
 
+def todo_node(node, pg, paramslist, repeat_layer = True):
+    (k,p) = node
+    next_mg_steps = paramslist[k+1][:] if k < len(paramslist)-1 else []
+    if repeat_layer:
+        next_mg_steps += paramslist[k][:]
+    # find neighboring parameters using DSGRN adjacencies function to get all possible neighbors
+    # accounting for the same parameter in adjacent layers
+    adj = list(pg.adjacencies(p, 'codim1'))
+    possible_neighbors = [(k + 1, q) for q in adj + [p]]
+    if repeat_layer:
+        possible_neighbors += [(k, q) for q in adj]
+    return (node, list(set(next_mg_steps).intersection(possible_neighbors)))
 
-def get_phenotype_graph_async(database, paramslist, num_processes, repeat_layer=True):
+def get_phenotype_graph_parallel(database, paramslist, num_processes, repeat_layer=True):
     '''
     Perform successive intersections of allowable parameter transitions with codimension 1 parameter adjacencies. This results in a list of pairs of neighboring parameters with the desired bounds properties. Allows repeats of bound matches except for the last list. The result is saved as a graph, making the end result amenable to graph searches.
     :param database: DSGRN.Database object
