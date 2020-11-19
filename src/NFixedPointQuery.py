@@ -8,6 +8,7 @@
 
 from DSGRN.Query.FixedPointTables import *
 
+
 import os, sys
 
 class HiddenPrints:
@@ -20,6 +21,7 @@ class HiddenPrints:
         sys.stdout = self._original_stdout
 
 
+
 class NFixedPointQuery:
   def __init__ (self, database, *bounds):
     
@@ -30,8 +32,12 @@ class NFixedPointQuery:
     for i in range(N):
       FPs = bounds[i]
       table = 'Matches' + str(i)
+
       with HiddenPrints():
             MatchQuery(FPs, table, database)
+
+      MatchQuery(FPs, table, database)
+
       c.execute('create temp table set' + str(i) + ' as select MorseGraphIndex from ' + table + ' group by MorseGraphIndex;')
       if i==0: 
             c.execute('create temp table match0 as select * from set0')
