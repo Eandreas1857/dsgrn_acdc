@@ -1,19 +1,15 @@
-# PhenotypeGraphviz
-# Elizabeth Andreas
-# 2020-10-01
-# MIT LICENSE
-
 import graphviz
 from DSGRN._dsgrn import *
 
 class PhenotypeGraphviz:
-  def __init__(self, database, network, edges, name):
+  def __init__(self, database, network, edges, svg_or_png, name):
     """
     Construct graph of the parameter graph for a given network
     """
     self.database = database
     self.network = network
     self.name = name
+    self.svg_or_png = svg_or_png
     pg = ParameterGraph(network)
     vertices = []
     for i in edges:
@@ -45,10 +41,13 @@ class PhenotypeGraphviz:
 
   def _repr_svg_(self):
     """
-    Return png
+    Return svg or png
     """
-    graph = graphviz.Source(self.graphviz(),format='png')
-    return graph.render('graph_'+self.name, view = True)
+    if self.svg_or_png == 'svg':
+        return graphviz.Source(self.graphviz())._repr_svg_()
+    if self.svg_or_png == 'png':
+        graph = graphviz.Source(self.graphviz(),format='png')
+        return graph.render('graph_'+self.name, view = True)
 
   def graphviz(self):
     """

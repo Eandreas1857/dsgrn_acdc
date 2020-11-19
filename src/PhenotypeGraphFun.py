@@ -194,7 +194,7 @@ def find_all_paths(edges,start_set,stop_set):
         :param path: A list containing the parameter node at which to start.
         :return: Side-effect list.
         '''
-        if path[-1] in stop_set:
+        if path[-1] in stop_set and path not in paths:
             paths.append(path)
         else:
             for n in comp_edges[path[-1]]:
