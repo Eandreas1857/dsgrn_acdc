@@ -1,0 +1,126 @@
+0 code: H = above all thresholds, L = 0, * = above any amount of thresholds, 0 = 0
+
+ACDC_Fullconn:
+  Network:
+    Hb : (~Kr)(~Kni)
+    Gt : (~Hb)(~Kr)
+    Kr : (~Gt)(~Kni)
+    Kni : (~Hb)(~Gt)
+
+  Mode:
+    Inessental
+
+  Size:
+    2,560,000
+
+  Phenotype Pattern:
+    [[AP37], [AP40], [AP45], [AP47], [AP51], [AP57], [AP61], [AP63], [AP67]]
+    
+    AP35 = {"Hb":[0,2], "Gt":2, "Kr":0, "Kni":0}
+    AP37 = {"Hb":2, "Gt":[0,2], "Kr":0, "Kni":0}
+    AP40 = {"Hb":2, "Gt":0, "Kr":[0,2], "Kni":0} 
+    AP45 = {"Hb":[0,2], "Gt":0, "Kr":2, "Kni":0} 
+    AP47 = {"Hb":[0,2], "Gt":0, "Kr":2, "Kni":0} 
+    AP51 = {"Hb":0, "Gt":0, "Kr":2, "Kni":[0,2]} 
+    AP57 = {"Hb":0, "Gt":0, "Kr":[0,2], "Kni":2} 
+    AP61 = {"Hb":0, "Gt":0, "Kr":[0,2], "Kni":2}
+    AP63 = {"Hb":0, "Gt":[0,2], "Kr":0, "Kni":2} 
+    AP67 = {"Hb":0, "Gt":2, "Kr":0, "Kni":[0,2]} 
+
+  goe:
+    '='
+
+  Parameter list file:
+    Fullconn_paramslist_0.json
+
+  Edge dictonary file:
+    Fullconn_edges_0.json with keys as strings (required)
+    Fullconn_edges_0.pkl without any conversions
+
+  Condensation graph file:
+    Fullconn_cond_0.json with keys as strings (only condensation graph saved)
+    Fullconn_cond_0.pkl without any conversions (all outputs saved)
+
+ACDC_StrongEdges:
+  Network:
+    Hb: (Gt)(~Kni)       
+    Gt: (Kni)(~Kr)       
+    Kr: (~Kni)(~Gt)      
+    Kni: (~Hb)(~Gt)
+
+  Mode:
+    Inessental
+
+  Size:
+    3,240,000
+
+  Phenotype Pattern:
+    [[AP37], [AP40], [AP45], [AP47], [AP51], [AP57], [AP61], [AP63], [AP67]]
+    
+    AP35 = {"Hb":[0,1], "Gt":3, "Kr":0, "Kni":0}
+    AP37 = {"Hb":1, "Gt":[0,3], "Kr":0, "Kni":0} 
+    AP40 = {"Hb":1, "Gt":0, "Kr":[0,1], "Kni":0} 
+    AP45 = {"Hb":[0,1], "Gt":0, "Kr":1, "Kni":0} 
+    AP47 = {"Hb":[0,1], "Gt":0, "Kr":1, "Kni":0} 
+    AP51 = {"Hb":0, "Gt":0, "Kr":1, "Kni":[0,3]} 
+    AP57 = {"Hb":0, "Gt":0, "Kr":[0,1], "Kni":3} 
+    AP61 = {"Hb":0, "Gt":0, "Kr":[0,1], "Kni":3}
+    AP63 = {"Hb":0, "Gt":[0,3], "Kr":0, "Kni":3} 
+    AP67 = {"Hb":0, "Gt":3, "Kr":0, "Kni":[0,3]} 
+
+  goe:
+    '='
+
+  Parameter list file:
+    StrongEdges_paramslist_0.json
+
+  Edge dictonary file:
+    StrongEdges_edges_0.json with keys as strings (required)
+    StrongEdges_edges_0.pkl without any conversions
+
+  Condensation graph file:
+    StrongEdges_cond_0.json with keys as strings (only condensation graph saved)
+    StrongEdges_cond_0.pkl without any conversions (all outputs saved)
+
+
+ACDC_Hbsl:
+  Network:
+    Hb : (~Kr)(~Kni)(Hb)
+    Gt : (~Hb)(~Kr)
+    Kr : (~Gt)(~Kni)
+    Kni : (~Hb)(~Gt)
+
+  Mode:
+    Inessental
+
+  Size:
+    271,488,000
+
+  Phenotype Pattern:
+    [[AP37], [AP40], [AP45], [AP47], [AP51], [AP57], [AP61], [AP63], [AP67]]
+    
+    AP35 = {"Hb":[0,3], "Gt":2, "Kr":0, "Kni":0}
+    AP37 = {"Hb":3, "Gt":[0,2], "Kr":0, "Kni":0}
+    AP40 = {"Hb":3, "Gt":0, "Kr":[0,2], "Kni":0} 
+    AP45 = {"Hb":[0,3], "Gt":0, "Kr":2, "Kni":0} 
+    AP47 = {"Hb":[0,3], "Gt":0, "Kr":2, "Kni":0} 
+    AP51 = {"Hb":0, "Gt":0, "Kr":2, "Kni":[0,2]} 
+    AP57 = {"Hb":0, "Gt":0, "Kr":[0,2], "Kni":2} 
+    AP61 = {"Hb":0, "Gt":0, "Kr":[0,2], "Kni":2}
+    AP63 = {"Hb":0, "Gt":[0,2], "Kr":0, "Kni":2} 
+    AP67 = {"Hb":0, "Gt":2, "Kr":0, "Kni":[0,2]} 
+
+  goe:
+    '='
+
+  Parameter list file:
+    Hbsl_paramslist_0.json
+
+  Edge dictonary file:
+    Fullconn_edges_0.json with keys as strings (required)
+    Fullconn_edges_0.pkl without any conversions
+
+  Condensation graph file:
+    Fullconn_cond_0.json with keys as strings (only condensation graph saved)
+    Fullconn_cond_0.pkl without any conversions (all outputs saved)
+

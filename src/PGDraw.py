@@ -19,7 +19,7 @@ class PGGraph:
     vertices = set(range(0,pg.size()))
     edges = set()
     for gpi1 in vertices:
-        for gpi2 in pg.adjacencies(gpi1):
+        for gpi2 in pg.adjacencies(gpi1, 'codim1'):
             if (gpi2,gpi1) not in edges:
                 edges = edges.union({(gpi1, gpi2)})
             
@@ -43,7 +43,8 @@ class PGGraph:
     """
     Return svg representation suitable for Notebook visualization
     """
-    return graphviz.Source(self.graphviz())._repr_svg_()
+    graph = graphviz.Source(self.graphviz(),format='png')
+    return graph.render('PGGraph', view = True)
 
   def graphviz(self):
     """
@@ -69,4 +70,23 @@ class PGGraph:
     """
     Return a fillcolor to be used when displaying graph
     """
-    return "grey"
+    if self.label(v)[1] == 0:
+        return "cyan3"
+    if self.label(v)[1] == 1:
+        return 'cyan4'
+    if self.label(v)[1] == 2:
+        return 'darkseagreen'
+    if self.label(v)[1] == 3:
+        return 'cornflowerblue'
+    if self.label(v)[1] == 4:
+        return 'cadetblue1'
+    if self.label(v)[1] == 5:
+        return 'deepskyblue2'
+    if self.label(v)[1] == 6:
+        return 'goldenrod1'
+    if self.label(v)[1] == 7:
+        return 'darkorange'
+    if self.label(v)[1] == 8:
+        return 'darksalmon'
+    else:
+        return "grey"
