@@ -118,6 +118,38 @@ def get_paramslist_optimized(database, list_of_bounds, goe):
             break
     return paramslist
 
+def get_paramslist_strict(database, pheno_pattern):
+    c = database.conn.cursor()
+    
+    #Create a new MGA table of strictly monostable FP's, this is what we will use to find parameter index's
+    set_of_MGIm = list(set([ row[0] for row in c.execute('select MorseGraphIndex, count(*) from MorseGraphAnnotations group by MorseGraphIndex') if row[-1]==1] ))
+    sql = 'create temp table mono_MGI as select * from MorseGraphAnnotations where MorseGraphIndex in ({seq})'.format(seq = ','.join(['?']*len(set_of_MGIm)))
+    c.execute(sql, set_of_MGIm )
+    
+    paramslist = []
+    for i in range(len(pheno_pattern)):
+        FPset = pheno_pattern[i]
+        if len(FPset) == 1:
+            MGIset = list(set([row[0] for row in c.execute('select * from mono_MGI where Label in (' + FPset[0] + ')' )]) )
+        if len(FPset) == 2:
+            MGIset = list(set([row[0] for row in c.execute('select * from mono_MGI where Label in (' + FPset[0] + ',' + FPset[1] + ')' )]) )
+        if len(FPset) == 3:
+            MGIset = list(set([row[0] for row in c.execute('select * from mono_MGI where Label in (' + FPset[0] + ',' + FPset[1] + ',' + FPset[2] + ')' )]) )
+        if len(FPset) == 4:
+            MGIset = list(set([row[0] for row in c.execute('select * from mono_MGI where Label in (' + FPset[0] + ',' + FPset[1] + ',' + FPset[2] + ',' + FPset[3] + ')' )]) )
+            
+        print(MGIset)
+        string = 'select * from Signatures where MorseGraphIndex in ({seq})'.format(
+            seq=','.join(['?'] * len(MGIset)))
+        
+        PGIset = list(set((i, row[0]) for row in c.execute(string, MGIset)))
+        paramslist.append(PGIset)
+    
+    c.execute('drop table mono_MGI')
+    return paramslist
+
+
+
 def get_phenotype_graph_optimized(database, paramslist, repeat_layer=True):
     '''
     Perform successive intersections of allowable parameter transitions with codimension 1 parameter adjacencies. This results in a list of pairs of neighboring parameters with the desired bounds properties. Allows repeats of bound matches except for the last list. The result is saved as a graph, making the end result amenable to graph searches.
@@ -186,9 +218,9 @@ def find_a_path(edges,start_set,stop_set, path_length):
             break
     return paths
 
-def find_all_paths(edges,start_set,stop_set):
+def find_all_paths(edges,start_set,stop_set, path_length, paths_amount):
 
-    def find_paths(path):
+    def find_paths(path, path_length, paths_amount):
         '''
         Recursive function that finds all paths from a starting parameter to any ending parameter in a set. This only works on a connected graph and does not repeat nodes in any path.
         :param path: A list containing the parameter node at which to start.
@@ -198,14 +230,20 @@ def find_all_paths(edges,start_set,stop_set):
             paths.append(path)
         else:
             for n in comp_edges[path[-1]]:
-                if n not in path:
-                    find_paths(path + [n])
+                if len(paths) <= paths_amount:
+                    if n not in path and len(path) <= path_length:
+                        find_paths(path + [n], path_length, paths_amount)
+                else:
+                    break
         return None
 
     paths = []
     for start in start_set:
-        comp_edges = get_connected_component(start,edges)
-        find_paths([start])
+        if len(paths) <= paths_amount:
+            comp_edges = get_connected_component(start,edges)
+            find_paths([start], path_length, paths_amount)
+        else:
+            break
     return paths
 
 
