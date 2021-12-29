@@ -100,6 +100,27 @@ def to_dict_of_lists(G, nodelist):
     for n in nodelist:
         d[n] = [nbr for nbr in G.neighbors(n)]
     return d
+    
+def redu_grad_graph(database, grad_graph):
+    c = database.conn.cursor()
+    pg = DSGRN.ParameterGraph(database.network)
+
+    redu_grad_graph = deepcopy(grad_graph)
+    del_list = []
+
+    for node in grad_graph:
+        p = node[2]
+        MGI_result = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(p))
+        MGI = MGI_result.fetchone()[0]
+        FP_result = c.execute('select Label from MorseGraphAnnotations where MorseGraphIndex is ' + str(MGI))
+        FP = FP_result.fetchone()[0]
+        #print(p,FP)
+        if FP not in FP_list:
+            del redu_grad_graph[node]
+            del_list.append(node)
+
+    final_grad_graph = remove_dict_value(redu_grad_graph, del_list)
+    return final_grad_graph
 
 def Fullconn_gradient_data(database, Paths, scc):
     

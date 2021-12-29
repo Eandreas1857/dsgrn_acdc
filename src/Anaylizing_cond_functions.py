@@ -2,6 +2,8 @@ import DSGRN
 from DSGRN import *
 import networkx as nx
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+import math
 from copy import deepcopy
 import os
 from all_networks_with_n_nodes_e_edges import *
@@ -263,14 +265,16 @@ def find_breaks_in_FG_comb(database, P, scc, Hb_max, Kni_max):
                     breaks.append((h,k))
     x = []
     y = []
-
+    plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.axes().yaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.rcParams["figure.figsize"] = (5,5)
     for s in scc:
         x.append(Hb_max-scc[s][0][0])
         y.append(scc[s][0][1])
 
     plt.scatter(y, x)
     for i in breaks:
-        plt.scatter([Hb_max-i[0]],[i[1]], color = 'r')
+        plt.scatter([i[1]],[Hb_max-i[0]], color = 'r')
     plt.xlabel('Kni Facter Graph Layer')
     plt.ylabel('Hb Facter Graph Layer')
     plt.show()
@@ -388,3 +392,131 @@ def get_gephi_graph_for_cond(database, network, grad_graph, graphml_filename, pa
     
     ### Notice graph only has bagged FP in it, the condensation of the gradient graph only, without removing all nodes not in bag is much larger.
     create_cond_subgraphs_graphml(database, grad_graph, cG, P, path_nodes, scc, FP_Region, start_set, stop_set, filename)
+
+def build_diag(Hb_max, Kni_max, breaks):
+    keep = set()
+
+    rk = math.ceil((Kni_max)/(Hb_max))
+    rh = math.ceil((Hb_max)/(Kni_max))
+    r = max(rk,rh)
+    keep.add((0,0))
+
+    if rk >= rh:
+        h = 0
+        k = 0
+        
+        while k<Kni_max:
+            for i in range(r):
+                if k + 1 <= Kni_max:
+                    k += 1 
+                    keep.add((h,k))
+                    if i == r-1:
+                        if k + 1 <= Kni_max:
+                            keep.add((h,k+1))
+                            keep.add((h+2, k-1))
+                        h+=1
+                        keep.add((h,k))
+                        
+        h = 0
+        k = 0
+        while h<Hb_max:
+            h+=1
+            keep.add((h,k))
+            for i in range(r):
+                if k + 1 <= Kni_max:
+                    k += 1 
+                    keep.add((h,k))
+
+    if rk < rh:
+        h = 0
+        k = 0
+        
+        while h<Hb_max:
+            for i in range(r):
+                if h + 1 <= Hb_max:
+                    h += 1 
+                    keep.add((h,k))
+                    if i == r-1:
+                        if h + 1 <= Hb_max:
+                            keep.add((h+1,k))
+                            keep.add((h-1, k+2))
+                        k+=1
+                        keep.add((h,k))
+                        
+        h = 0
+        k = 0
+        while k<Kni_max:
+            k+=1
+            keep.add((h,k))
+            for i in range(r):
+                if h + 1 <= Hb_max:
+                    h += 1 
+                    keep.add((h,k))
+
+    for i in keep.copy():
+        keep.add((Hb_max - i[0], Kni_max - i[1]))       
+
+    for i in breaks:
+        if i not in keep:
+            h = i[0]
+            k = i[1]
+            keep.add((h,k))
+            if k != 0 and k > Kni_max/2:
+                while (h,k-1) not in keep:
+                    k -= 1
+                    keep.add((h,k))
+            if k != Kni_max and k < Kni_max/2:
+                while (h,k+1) not in keep:
+                    k += 1
+                    keep.add((h,k))
+            if k == Kni_max/2:
+                if h < Hb_max/2:
+                    while (h,k-1) not in keep:
+                        k -= 1
+                        keep.add((h,k))
+
+                if h > Hb_max/2:
+                    while (h,k+1) not in keep:
+                        k += 1
+                        keep.add((h,k))
+            k = i[1]
+            if h != 0 and h > Hb_max/2:
+                while (h-1,k) not in keep:
+                    h -= 1
+                    keep.add((h,k))
+            if h != Hb_max and h < Hb_max/2:
+                while (h+1,k) not in keep:
+                    h += 1
+                    keep.add((h,k))
+            if h == Hb_max/2:
+                if k < Kni_max/2:
+                    while (h-1,k) not in keep:
+                        h -= 1
+                        keep.add((h,k))
+                if k > Kni_max/2:
+                    while (h+1,k) not in keep:
+                        h += 1
+                        keep.add((h,k))      
+    return keep
+
+def plot_FG_layer_comb(keep, Hb_max, breaks, title):
+    plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.axes().yaxis.set_major_locator(MaxNLocator(integer=True))
+    x = []
+    y = []
+    plt.rcParams["figure.figsize"] = (5,5)
+    for s in keep:
+        x.append(Hb_max - s[0])
+        y.append(s[1])
+
+    plt.scatter(y, x)
+    for i in breaks:
+        if i not in keep:
+            plt.scatter([i[1]],[Hb_max - i[0]], color = 'r')
+        else:
+            plt.scatter([i[1]],[Hb_max - i[0]], color = 'g')
+    plt.title(title)
+    
+    plt.xlabel('Kni Facter Graph Layer')
+    plt.ylabel('Hb Facter Graph Layer')
+    plt.show()
