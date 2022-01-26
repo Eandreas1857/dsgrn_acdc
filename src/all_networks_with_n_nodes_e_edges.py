@@ -137,3 +137,9 @@ def convert_dict_to_networkx(dict):
 def save_networkx_as_png(G, filename):
     g = nx.drawing.nx_pydot.to_pydot(G)
     g.write_png(filename)
+
+def save_networkx_as_png_w_edge_weight(G, data, filename):
+    pdot = nx.drawing.nx_pydot.to_pydot(G)
+    for i, edge in enumerate(pdot.get_edges()):
+        edge.set_label(edge.get_attributes()[data])
+    pdot.write_png(filename)
