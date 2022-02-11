@@ -5,11 +5,14 @@ import json, os
 import networkx as nx
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+
 import math
+from copy import deepcopy
 
 from get_FG import *
 from get_FP_Poset import *
 from networkx_cond import *
+from Cut import *
 
 def save_json(edges, filename):
     mydict = {}
@@ -466,6 +469,23 @@ def remove_unnecessary_nodes_in_P(P, breaks, keep, scc, Kni_max):
 
     return diagP
 
+def add_source_weight_to_cond(G, cond, scc):
+
+    for node in cond:
+        count = 0
+        for edge in cond[node]:
+            yes_count = 0
+            for s in scc[node]:
+                for t in scc[edge]:
+                    if G.has_edge(s,t) == True:
+                        yes_count += 1
+                        count +=1
+            cond[node][edge]['weight'] = yes_count
+            
+        for edge in cond[node]:
+            cond[node][edge]['weight'] = cond[node][edge]['weight']/count
+    return cond
+
 def test_any_path_exists_in_product(string, network_filename):
     '''
     string: network string.
@@ -510,9 +530,17 @@ def test_any_path_exists_in_product(string, network_filename):
     strongcc = strongly_connected_components_by_MGI(G, database)
     cG, scc = condensation(G, strongcc)
 
+    N = nx.DiGraph()
+    for node in cG:
+        N.add_node(node)
+        for edge in cG[node]:
+            N.add_edge(node, edge)
+
+    add_source_weight_to_cond(G, N, scc)
+
     # Compute Product graph P and the restricted diagonal Product diagP
 
-    P = get_product_graph(database, cG, scc, FP_Poset)
+    P = get_product_graph(database, N, scc, FP_Poset)
     lenP_nodes = len(P.nodes())
     lenP_edges = len(P.edges())
 
@@ -551,8 +579,11 @@ def test_any_path_exists_in_product(string, network_filename):
             else:
                 continue        
             break
-        
-    return network_filename, (pg.size(), len(G.nodes()), len(G.edges()), len(cG.nodes()), len(cG.edges()), lenP_nodes, lenP_edges, len(diagP.nodes()), len(diagP.edges), result)
+
+    if result == True:
+        c = find_best_clustering(diagP, network_filename, 15, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)[0]
+
+    return network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'cG size': len(cG.nodes()), 'cG edges': len(cG.edges()), 'P size' : lenP_nodes, 'P edges': lenP_edges, 'diagP size': len(diagP.nodes()), 'diagP edges': len(diagP.edges), 'path exists': result, 'WCut': c}
 
 
 def main(network_tup):

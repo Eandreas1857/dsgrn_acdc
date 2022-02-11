@@ -449,7 +449,44 @@ def avg_two_way_edge_weight_for_OpenOrd(cG, data = 'weight'):
             cG[t][s]['weight'] = avg_w
     return cG
 
-def create_cond_subgraphs_graphml(database, cond, k, P, path_nodes, scc, FP_Region, start_set, stop_set, Filename):
+def load_G_cG_P_weighted(network_filename, grad_graph_filename, return_product = True):
+    database_filename = "/home/elizabeth/Desktop/GIT/dsgrn_acdc/networks/" + network_filename + ".db"
+    database = Database(database_filename) 
+    network_txt_filename = "/home/elizabeth/Desktop/GIT/dsgrn_acdc/networks/" + network_filename + ".txt"
+
+    with open(network_txt_filename,"r") as f:
+        network = f.read()
+
+    grad_graph = load_json(grad_graph_filename)
+
+    out_edges = get_number_out_edges_from_string(network)
+    FP_Poset, FP_Regions = get_FP_Poset(out_edges)
+    G = reduce_gradient_graph_to_nodes_of_interest(database, grad_graph, FP_Poset)[0]
+
+    strongcc = strongly_connected_components_by_MGI(G, database)
+    cG, scc = condensation(G, strongcc)
+
+    N = nx.DiGraph()
+    for node in cG:
+        N.add_node(node)
+        for edge in cG[node]:
+            N.add_edge(node, edge)
+
+    add_source_weight_to_cond(G, N, scc)
+
+    if return_product == True:
+        Hb_list, Kni_list = get_Hb_Kni_list(database)
+        Hb_max = len(Hb_list)-1
+        Kni_max = len(Kni_list)-1
+        P = get_product_graph(database, N, scc, FP_Poset)
+
+        breaks = find_breaks_in_FG_comb(database, P, scc, Hb_max, Kni_max, FP_Regions) 
+        keep = build_diag(Hb_max, Kni_max, breaks)
+        diagP = remove_unnecessary_nodes_in_P(P, breaks, keep, scc, Kni_max)
+
+    return (G, cG, diagP, scc) if return_product == True else (G, cG)
+
+def create_cond_subgraphs_graphml(database, cond, k, P, path_nodes, scc, FP_Region, start_set, stop_set, Filename, in_out_degree):
     ''' graphml filetype '''
     c = database.conn.cursor()
     
@@ -512,14 +549,14 @@ def create_cond_subgraphs_graphml(database, cond, k, P, path_nodes, scc, FP_Regi
                 for node in component:
                     N.remove_node(node)
 
-    Y, cut, clusters = asym_optimized_normalized_cut(N, k, nodelist = None, data = 'weight')
+    Y, cut, clusters = asym_optimized_normalized_cut(N, k, nodelist = None, data = 'weight', in_out_degree = in_out_degree)
     print('WCut_cG', cut)
     for c in clusters:
         for n in clusters[c]:
             C[n] = c
     nx.set_node_attributes(cond, C, 'cG_Clusters')
 
-    Y, cut, clusters = asym_optimized_normalized_cut(cond, k, nodelist = list(P.nodes()), data = 'weight')
+    Y, cut, clusters = asym_optimized_normalized_cut(P, k, nodelist = None, data = 'weight', in_out_degree = in_out_degree)
     print('WCut_P', cut)
 
     for c in clusters:
