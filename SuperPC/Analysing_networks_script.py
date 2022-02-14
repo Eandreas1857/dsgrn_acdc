@@ -5,8 +5,8 @@ import random
 
 def run(network_file, filename):
     network_list = json.load(open(network_file))
-    random_network_sample = random.sample(network_list, 10)
-    pool = mp.Pool(5)
+    random_network_sample = random.sample(network_list, 50)
+    pool = mp.Pool(10)
     output = pool.map(network_prelim.main, random_network_sample)
     results = dict(output)
     json.dump(results, open(filename, 'w'))
@@ -17,6 +17,8 @@ if __name__=="__main__":
 ## how to run in terminal: 
 # ssh ElizabethAndreas@megaplex.msu.montana.edu
 # python ../Analysing_networks_script.py network_file.json results_file.json >output.log 2>&1 </dev/null &
+
+# python ~/GIT/dsgrn_acdc/SuperPC/Analysing_networks_script.py ~/GIT/dsgrn_acdc/SuperPC/network_file.json results_file.json >output.log 2>&1 < /dev/null &
 
 # tail output.log
 # cat output.log

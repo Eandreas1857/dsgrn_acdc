@@ -97,7 +97,7 @@ def get_network_string(edges, bool):
     return '"""Hb : ' + new['Hb'] + '\n' + 'Gt : ' + new['Gt'] + '\n' + 'Kr : ' + new['Kr'] + '\n' + 'Kni : ' + new['Kni'] + '"""'
 
 def get_grad_graph_strict_bagged(database, network_string):
-    pg = DSGRN.ParameterGraph(database.network)
+    pg = ParameterGraph(database.network)
     c = database.conn.cursor()
 
     out_edges = get_number_out_edges_from_string(network_string)
@@ -123,6 +123,7 @@ def get_grad_graph_strict_bagged(database, network_string):
             if set(FP_result).intersection(set(FP_keep)):
                 sHb = Hb[((((pg.parameter(s)).logic())[0]).stringify())[6:-2]]
                 sKni = Kni[((((pg.parameter(s)).logic())[3]).stringify())[6:-2]]
+
                 for t in list(pg.adjacencies(s, 'codim1')):
                     MGI_result = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(t))
                     MGI = MGI_result.fetchone()[0]
@@ -592,5 +593,5 @@ def main(network_tup):
     network = get_network_string(network_tup[1], network_tup[-1])
 
     results = test_any_path_exists_in_product(network, network_filename)
-
+    print(results)
     return results
