@@ -450,9 +450,9 @@ def avg_two_way_edge_weight_for_OpenOrd(cG, data = 'weight'):
     return cG
 
 def load_G_cG_P_weighted(network_filename, grad_graph_filename, return_product = True):
-    database_filename = "/home/elizabeth/Desktop/GIT/dsgrn_acdc/networks/" + network_filename + ".db"
+    database_filename = "/home/elizabeth/Desktop/GIT/dsgrn_acdc/Saved_Files/MegaPlex_results/Analysing_random_networks_20220212/" + network_filename + ".db"
     database = Database(database_filename) 
-    network_txt_filename = "/home/elizabeth/Desktop/GIT/dsgrn_acdc/networks/" + network_filename + ".txt"
+    network_txt_filename = "/home/elizabeth/Desktop/GIT/dsgrn_acdc/Saved_Files/MegaPlex_results/Analysing_random_networks_20220212/" + network_filename + ".txt"
 
     with open(network_txt_filename,"r") as f:
         network = f.read()

@@ -5,7 +5,8 @@ import json, os
 import networkx as nx
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
-
+import pandas as pd
+import psutil
 import math
 from copy import deepcopy
 
@@ -22,6 +23,15 @@ def save_json(edges, filename):
             
     with open(filename, 'w') as fp:
         json.dump(mydict, fp)
+
+def check_memory(network_filename, Max_mem):
+    virtualMemoryInfo = psutil.virtual_memory()
+    MemoryUsage = virtualMemoryInfo.percent
+
+    if MemoryUsage>Max_mem:
+        print(MemoryUsage, "WARNING! Memory usage high. Stopping thread for " + network_filename, flush=True)
+
+    return MemoryUsage
 
 def plot_FG_layer_comb_in_G(G, scc, Hb_max, network_filename):
     plt.figure(figsize=(5,5))
@@ -487,13 +497,150 @@ def add_source_weight_to_cond(G, cond, scc):
             cond[node][edge]['weight'] = cond[node][edge]['weight']/count
     return cond
 
+def check(database, s, t, scc, FP_Regions):
+    ps = scc[s][0][-1]
+    pt = scc[t][0][-1]  
+    c = database.conn.cursor() 
+    sMGI = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(ps))
+    MGI = sMGI.fetchone()[0]
+    sFP = [row[0] for row in c.execute('select Label from MorseGraphAnnotations where MorseGraphIndex is ' + str(MGI))]
+
+    tMGI = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(pt))
+    MGI = tMGI.fetchone()[0]
+    tFP = [row[0] for row in c.execute('select Label from MorseGraphAnnotations where MorseGraphIndex is ' + str(MGI))]
+
+    keep = False
+    for r in FP_Regions:
+        if r < 8:
+            if sFP[0] in FP_Regions[r] and tFP[0] in FP_Regions[r+1]:
+                keep = True
+            if sFP[0] == tFP[0]:
+                keep = 'same'
+    return keep
+
+def P_with_absorbing_nodes(database, N, diagP, scc, FP_Regions, stop_set):
+    w = nx.get_edge_attributes(N, 'weight')
+
+    mP = diagP.copy()
+    mP.add_edge('leak', 'leak', weight = 1)
+    mP.add_edge('rpert', 'rpert', weight = 1)
+    mP.add_edge('pert', 'pert', weight = 1)
+    mP.add_edge('skip', 'skip', weight = 1)
+
+    for s in stop_set:
+        for t in [n for n in mP.neighbors(s)]:
+            mP.remove_edge(s,t)
+        mP.add_edge(s,s, weight = 1)
+
+    pV = diagP.nodes()
+    pE = diagP.edges()
+
+    for n in pV:
+        if n not in stop_set:
+            leak_sum = 0
+            rpert_sum = 0
+            skip_sum = 0
+            pert_sum = 0
+            for (s,t) in N.edges(n):
+                if (s,t) not in pE:
+                    if t not in pV:
+                        leak_sum += w[s,t]
+                    else:
+                        c = check(database, n, t, scc, FP_Regions)
+                        if c == True:
+                            rpert_sum += w[s,t]
+                            #mP.add_edge(s,t, weight = w[s,t])
+                        if c == 'same':
+                            pert_sum += w[s,t]
+                        if c == False:
+                            skip_sum += w[s,t]
+
+            mP.add_edge(n,'leak', weight =leak_sum) #leaving P
+            mP.add_edge(n,'rpert', weight =rpert_sum) #pert to next region
+            mP.add_edge(n,'skip', weight =skip_sum) #skipping full regions
+            mP.add_edge(n,'pert', weight =pert_sum) #pert in region
+    return mP
+
+def absorbing_Markov_prob(mP, scc, start_set):
+    weight = nx.get_edge_attributes(mP, 'weight')
+    nlen = len(mP)
+    nodelist = [n for n in mP]
+
+    index = dict(zip(nodelist, range(nlen)))
+
+    M = np.full((nlen, nlen), np.nan, order=None)
+    for s in mP:
+        for t in mP.neighbors(s):
+            M[index[s], index[t]] = weight[s,t]
+
+    M[np.isnan(M)] = 0
+    M = np.asarray(M, dtype=None)
+
+    absorb = []
+    for s in mP:
+        if  M[index[s], index[s]] == 1:
+            absorb.append(s)
+    column_names = [r for r in mP]
+    row_names = [r for r in mP]
+
+    df = pd.DataFrame(M, columns=column_names, index=row_names)
+
+    #Need to put all absorbing node rows to the bottom of the matrix
+    new_order = [r for r in mP]
+
+    for n in absorb:
+        new_order.remove(n)
+        new_order.append(n)
+            
+    #Now we can get an array reordered to obtain Q and R, new_order is the new ordering of rows/columns
+    arr = df[new_order].loc[new_order].to_numpy()
+
+    #Obtain Q!
+    temp = []
+    for row in range(len(arr)-len(absorb)):
+        temp.append(list(arr[row])[:-len(absorb)])
+    Q = np.array([np.array(xi) for xi in temp])
+
+    #Obtain R!
+    temp = []
+    for row in range(len(arr)-len(absorb)):
+        temp.append(list(arr[row])[-len(absorb):])
+    R = np.array([np.array(xi) for xi in temp])
+
+    n = len(new_order)-len(absorb)
+    a = np.zeros((n,))
+    size = 0 
+    for s in start_set:
+        size += len(scc[s])
+    for s in start_set:
+        i = new_order.index(s)
+        a[i] = len(scc[s])/size
+
+    I = np.identity(len(Q))
+    N = (np.linalg.inv((I-Q)))
+    B = np.dot(N,R)
+    V = np.dot(a,B)
+
+    results = {'B sum':sum(V)}
+    print(f"{sum(V):.9f}", flush = True)
+    l_s = 0
+    for i in range(len(V)):
+        #if round(B[new_order.index(starting_state)][i]*100,2) != 0.0:
+        results[absorb[i]] = V[i]
+        print(f"{V[i]:.9f}", '\tending on node', absorb[i], flush = True)
+        if absorb[i] == 'skip' or absorb[i] == 'leak':
+            l_s += V[i]
+    print(f"{l_s:.9f}", flush = True)
+    results['leak + skip'] = l_s
+    return  results
+
 def test_any_path_exists_in_product(string, network_filename):
     '''
     string: network string.
     network_filename: Name wanting to save network text file as, expects that .txt not at end.
     returns: True if paths exists, False if no paths exists in product graph.
     '''
-    
+    Max_mem = 90
     # Make DSGRN database and network txt file
     
     txt_filename = network_filename + ".txt"
@@ -519,6 +666,9 @@ def test_any_path_exists_in_product(string, network_filename):
 
     G = get_grad_graph_strict_bagged(database, string)
     grad_graph_filename = "grad_graph_strict_" + network_filename
+
+    if check_memory(network_filename, Max_mem)>Max_mem:
+        return network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'mem': 'process killed due to memory error'} 
 
     grad_graph = {}
     for n in G:
@@ -583,8 +733,15 @@ def test_any_path_exists_in_product(string, network_filename):
 
     if result == True:
         c = find_best_clustering(diagP, network_filename, 15, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)[0]
+    
+    mP =  P_with_absorbing_nodes(database, N, diagP, scc, FP_Regions, stop_set)
+    markov_results = absorbing_Markov_prob(mP, scc, start_set)
 
-    return network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'cG size': len(cG.nodes()), 'cG edges': len(cG.edges()), 'P size' : lenP_nodes, 'P edges': lenP_edges, 'diagP size': len(diagP.nodes()), 'diagP edges': len(diagP.edges), 'path exists': result, 'WCut': c}
+    results = network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'cG size': len(cG.nodes()), 'cG edges': len(cG.edges()), 'P size' : lenP_nodes, 'P edges': lenP_edges, 'diagP size': len(diagP.nodes()), 'diagP edges': len(diagP.edges), 'path exists': result, 'WCut': c, 'markov_results': markov_results}
+
+    print(results, flush=True)
+
+    return results
 
 
 def main(network_tup):
@@ -593,5 +750,5 @@ def main(network_tup):
     network = get_network_string(network_tup[1], network_tup[-1])
 
     results = test_any_path_exists_in_product(network, network_filename)
-    print(results)
+    print(results, flush=True)
     return results
