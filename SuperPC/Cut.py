@@ -255,14 +255,15 @@ def WCut(D, W, T, X):
     A = D-W
     
     cut = 0
+    Ck_cut = {}
     for i in range(len(X[0])):
 
         top = np.dot(X[:,i].transpose(), np.dot(A, X[:,i]))
         bottom = np.dot(X[:,i].transpose(), np.dot(T, X[:,i]))
 
         cut += top/bottom
-    
-    return cut
+        Ck_cut[i] = top/bottom
+    return cut, Ck_cut
 
 def find_best_clustering(G, network_filename, top_k, nodelist = None, data = None, in_out_degree = 'out', save_file = True):
 
@@ -294,11 +295,11 @@ def find_best_clustering(G, network_filename, top_k, nodelist = None, data = Non
                 C2.append(n)
         cluster_list = [C1, C2]
         V = indicator_vector(nodelist, cluster_list)
-        c = WCut(D, W, D, V)
-        cut_list.append((c,m,C1,C2))
+        c, Ck_cut = WCut(D, W, D, V)
+        cut_list.append((c,m,C1,C2, Ck_cut))
 
     cut_list.sort(key=lambda a: a[0])
-    c, m, C1, C2 = cut_list[0]
+    c, m, C1, C2, Ck_cut = cut_list[0]
 
     plt.figure(figsize=(15, 8))
     for i in nodelist:
@@ -315,4 +316,4 @@ def find_best_clustering(G, network_filename, top_k, nodelist = None, data = Non
     else:
         plt.show()
     
-    return c, m, C1, C2
+    return c, m, C1, C2, Ck_cut
