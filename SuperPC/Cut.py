@@ -149,7 +149,7 @@ def Hermitian_normalized_Laplacian(D, W, T):
     L = (1/2)*np.dot(np.dot(T1,H),T1)
     return L
 
-def k_smallest_eigvec(nodelist, L, k):
+def k_smallest_eigvec(nodelist, L, k, return_eigenvec = False):
     """Returns the k smallest eigenvectors of the Hermitian part of the normalised
      Laplacian nL. 
 
@@ -207,7 +207,7 @@ def k_smallest_eigvec(nodelist, L, k):
                 Y[:,y] = eigvec[:,i]/n
                 break
  
-    return preprocessing.normalize(Y, norm="l2")
+    return preprocessing.normalize(Y, norm="l2") if return_eigenvec == False else (s[:k], preprocessing.normalize(Y, norm="l2"))
 
 def indicator_vector(nodelist, cluster_list):
     nlen = len(nodelist)
@@ -273,7 +273,7 @@ def find_best_clustering(G, network_filename, top_k, nodelist = None, data = Non
     W = asym_weight_matrix(G, nodelist, data)
     D = asym_weighted_degree_matrix(G, nodelist, data, in_out_degree)
     L = Hermitian_normalized_Laplacian(D, W, D)
-    Y = k_smallest_eigvec(nodelist, L, 2)
+    eigval, Y = k_smallest_eigvec(nodelist, L, 2, return_eigenvec = True)
 
     eigv = sorted(Y[:,1])
     diff = []
@@ -316,4 +316,4 @@ def find_best_clustering(G, network_filename, top_k, nodelist = None, data = Non
     else:
         plt.show()
     
-    return c, m, C1, C2, Ck_cut
+    return c, eigval[1], m, C1, C2, Ck_cut

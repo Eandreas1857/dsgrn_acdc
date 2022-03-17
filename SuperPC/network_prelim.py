@@ -623,15 +623,15 @@ def absorbing_Markov_prob(mP, scc, start_set):
     V = np.dot(a,B)
 
     results = {'B sum':sum(V)}
-    print(f"{sum(V):.9f}", flush = True)
+    #print(f"{sum(V):.9f}", flush = True)
     l_s = 0
     for i in range(len(V)):
         #if round(B[new_order.index(starting_state)][i]*100,2) != 0.0:
         results[absorb[i]] = V[i]
-        print(f"{V[i]:.9f}", '\tending on node', absorb[i], flush = True)
+        #print(f"{V[i]:.9f}", '\tending on node', absorb[i], flush = True)
         if absorb[i] == 'skip' or absorb[i] == 'leak':
             l_s += V[i]
-    print(f"{l_s:.9f}", flush = True)
+    #print(f"{l_s:.9f}", flush = True)
     results['leak + skip'] = l_s
     return  results
 
@@ -733,7 +733,7 @@ def test_any_path_exists_in_product(string, network_filename):
             break
 
     if result == True:
-        c, m, C1, C2, Ck_cut = find_best_clustering(diagP, network_filename, 15, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
+        c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, network_filename, 15, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
     
     C1s = [i for i in start_set if i in C1]
     C1t = [i for i in stop_set if i in C1]
@@ -743,7 +743,7 @@ def test_any_path_exists_in_product(string, network_filename):
     mP =  P_with_absorbing_nodes(database, N, diagP, scc, FP_Regions, stop_set)
     markov_results = absorbing_Markov_prob(mP, scc, start_set)
 
-    results = (network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'cG size': len(cG.nodes()), 'cG edges': len(cG.edges()), 'P size' : lenP_nodes, 'P edges': lenP_edges, 'diagP size': len(diagP.nodes()), 'diagP edges': len(diagP.edges), 'path exists': result, 'WCut': c, 'Ck cut': Ck_cut, 'Ck start/stop': [C1s, C1t, C2s, C2t], 'markov_results': markov_results})
+    results = (network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'cG size': len(cG.nodes()), 'cG edges': len(cG.edges()), 'P size' : lenP_nodes, 'P edges': lenP_edges, 'diagP size': len(diagP.nodes()), 'diagP edges': len(diagP.edges), 'path exists': result, 'WCut': c, 'eigval': eigval, 'Ck cut': Ck_cut, 'Ck start/stop': [C1s, C1t, C2s, C2t], 'markov_results': markov_results})
 
     print(results, flush=True)
 
