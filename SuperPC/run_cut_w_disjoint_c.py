@@ -51,15 +51,17 @@ def get_cut_w_disjoint_start_stop(network_filename):
 
     return results
 
-def main(results):
+def main(network_result):
 
-    for i in results[10:]:
-        key = 'Ck start/stop'
-        if key in i[1]:
-            count +=1
-            if (i[1][key][0] !=[] and i[1][key][1] !=[]) or (i[1][key][2] !=[] and i[1][key][3] !=[]):
-                result = get_cut_w_disjoint_start_stop(i[0])
-        else:
+    i = network_result
+    key = 'Ck start/stop'
+    if key in i[1]:
+        count +=1
+        if (i[1][key][0] !=[] and i[1][key][1] !=[]) or (i[1][key][2] !=[] and i[1][key][3] !=[]):
             result = get_cut_w_disjoint_start_stop(i[0])
+        else:
+            result = (i[0], 'Good')
+    else:
+        result = get_cut_w_disjoint_start_stop(i[0])
 
     return result
