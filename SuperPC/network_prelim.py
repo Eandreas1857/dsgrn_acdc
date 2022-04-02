@@ -2,7 +2,7 @@ from tracemalloc import start
 import DSGRN
 from DSGRN import *
 import collections
-import json, os
+import json, os, ast
 import networkx as nx
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
@@ -15,6 +15,15 @@ from get_FG import *
 from get_FP_Poset import *
 from networkx_cond import *
 from Cut import *
+
+def load_json(file_to_load):
+    with open(file_to_load) as f:
+        data = json.load(f)
+        
+    new_data = {}
+    for key in data:
+        new_data[ast.literal_eval(key)] = [tuple(i) for i in data[key] ]
+    return new_data
 
 def save_json(edges, filename):
     mydict = {}
@@ -733,7 +742,7 @@ def test_any_path_exists_in_product(string, network_filename):
             break
 
     if result == True:
-        c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, network_filename, 15, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
+        c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, network_filename, 20, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
     
     C1s = [i for i in start_set if i in C1]
     C1t = [i for i in stop_set if i in C1]

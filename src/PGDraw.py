@@ -70,23 +70,23 @@ class PGGraph:
     """
     Return a fillcolor to be used when displaying graph
     """
-    if self.label(v)[1] == 0:
+    if self.label(v)[1] in [2,5,9,15,18,19,21]:
         return "cyan3"
-    if self.label(v)[1] == 1:
-        return 'cyan4'
-    if self.label(v)[1] == 2:
-        return 'darkseagreen'
-    if self.label(v)[1] == 3:
-        return 'cornflowerblue'
-    if self.label(v)[1] == 4:
-        return 'cadetblue1'
-    if self.label(v)[1] == 5:
-        return 'deepskyblue2'
-    if self.label(v)[1] == 6:
+    if self.label(v)[1] in [8, 20]:
         return 'goldenrod1'
-    if self.label(v)[1] == 7:
-        return 'darkorange'
-    if self.label(v)[1] == 8:
+    if self.label(v)[1] in [10]:
         return 'darksalmon'
+#    if self.label(v)[1] == 3:
+#        return 'cornflowerblue'
+#    if self.label(v)[1] == 4:
+#        return 'cadetblue1'
+#    if self.label(v)[1] == 5:
+#        return 'deepskyblue2'
+#    if self.label(v)[1] == 6:
+#        return 'goldenrod1'
+#    if self.label(v)[1] == 7:
+#        return 'darkorange'
+#    if self.label(v)[1] == 8:
+#        return 'darksalmon'
     else:
         return "grey"

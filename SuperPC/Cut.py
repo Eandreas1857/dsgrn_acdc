@@ -265,7 +265,9 @@ def WCut(D, W, T, X):
         Ck_cut[i] = top/bottom
     return cut, Ck_cut
 
-def find_best_clustering(G, network_filename, top_k, nodelist = None, data = None, in_out_degree = 'out', save_file = True):
+
+
+def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodelist = None, data = None, in_out_degree = 'out', save_file = True):
 
     if nodelist == None:
         nodelist = list(G.nodes())
@@ -273,7 +275,7 @@ def find_best_clustering(G, network_filename, top_k, nodelist = None, data = Non
     W = asym_weight_matrix(G, nodelist, data)
     D = asym_weighted_degree_matrix(G, nodelist, data, in_out_degree)
     L = Hermitian_normalized_Laplacian(D, W, D)
-    eigval, Y = k_smallest_eigvec(nodelist, L, 2, return_eigenvec = True)
+    eigval, Y = k_smallest_eigvec(nodelist, L, 2, return_eigenvec=True)
 
     eigv = sorted(Y[:,1])
     diff = []
@@ -294,9 +296,16 @@ def find_best_clustering(G, network_filename, top_k, nodelist = None, data = Non
             else:
                 C2.append(n)
         cluster_list = [C1, C2]
-        V = indicator_vector(nodelist, cluster_list)
-        c, Ck_cut = WCut(D, W, D, V)
-        cut_list.append((c,m,C1,C2, Ck_cut))
+        C1s = [i for i in start_set if i in C1]
+        C1t = [i for i in stop_set if i in C1]
+        C2s = [i for i in start_set if i in C2]
+        C2t = [i for i in stop_set if i in C2]
+        if (C1s !=[] and C1t !=[]) or (C2s !=[] and C2t !=[]):
+            continue
+        else:
+            V = indicator_vector(nodelist, cluster_list)
+            c, Ck_cut = WCut(D, W, D, V)
+            cut_list.append((c,m,C1,C2, Ck_cut))
 
     cut_list.sort(key=lambda a: a[0])
     c, m, C1, C2, Ck_cut = cut_list[0]
