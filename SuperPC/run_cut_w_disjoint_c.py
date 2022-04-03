@@ -69,5 +69,5 @@ def main(network_result):
             result = get_cut_w_disjoint_start_stop(i[0])
         except FileNotFoundError:
             result = (i[0], 'FileNotFoundError')
-    print(result)
+    print(result, flush = True)
     return result

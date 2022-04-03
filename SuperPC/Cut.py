@@ -307,9 +307,12 @@ def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodeli
             c, Ck_cut = WCut(D, W, D, V)
             cut_list.append((c,m,C1,C2, Ck_cut))
 
-    cut_list.sort(key=lambda a: a[0])
-    c, m, C1, C2, Ck_cut = cut_list[0]
-
+    if cut_list != []:
+        cut_list.sort(key=lambda a: a[0])
+        c, m, C1, C2, Ck_cut = cut_list[0]
+    else:
+        return (0, 0, [], [], {0:0, 1:0})
+        
     plt.figure(figsize=(15, 8))
     for i in nodelist:
         index = nodelist.index(i)

@@ -4,7 +4,7 @@ import json, sys
 
 def run(network_file, filename):
     network_list = json.load(open(network_file))
-    pool = mp.Pool(1)
+    pool = mp.Pool(3)
     output = pool.map(run_cut_w_disjoint_c.main, network_list)
     results = dict(output)
     json.dump(results, open(filename, 'w'))
