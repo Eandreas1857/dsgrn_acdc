@@ -759,13 +759,13 @@ def test_any_path_exists_in_product(string, network_filename):
     return results
 
 
-def main(network_tup):
+#def main(network_tup):
 
-    network_filename = 'network' + str(network_tup[0])
-    network = get_network_string(network_tup[1], network_tup[-1])
+#    network_filename = 'network' + str(network_tup[0])
+#    network = get_network_string(network_tup[1], network_tup[-1])
 
-    results = test_any_path_exists_in_product(network, network_filename)
+#    results = test_any_path_exists_in_product(network, network_filename)
 
-    return results
+#    return results
 
 

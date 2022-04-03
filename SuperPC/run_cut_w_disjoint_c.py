@@ -1,14 +1,15 @@
 from network_prelim import *
+
 def get_cut_w_disjoint_start_stop(network_filename):
 
-    network_txt_filename = "/home/elizabeth/Desktop/GIT/dsgrn_acdc/networks/" + network_filename + ".txt"
+    network_txt_filename = network_filename + ".txt"
     with open(network_txt_filename,"r") as f:
         network = f.read()
 
-    db_filename = "/home/elizabeth/Desktop/GIT/dsgrn_acdc/networks/" + network_filename + ".db"
+    db_filename =  network_filename + ".db"
     database = Database(db_filename)
 
-    grad_graph_filename = "/home/elizabeth/Desktop/GIT/dsgrn_acdc/notebooks/" +"grad_graph_strict_" + network_filename
+    grad_graph_filename = "grad_graph_strict_" + network_filename
     
     grad_graph = load_json(grad_graph_filename)
 
@@ -56,12 +57,17 @@ def main(network_result):
     i = network_result
     key = 'Ck start/stop'
     if key in i[1]:
-        count +=1
         if (i[1][key][0] !=[] and i[1][key][1] !=[]) or (i[1][key][2] !=[] and i[1][key][3] !=[]):
-            result = get_cut_w_disjoint_start_stop(i[0])
+            try:
+                result = get_cut_w_disjoint_start_stop(i[0])
+            except FileNotFoundError:
+                result = (i[0], 'FileNotFoundError')
         else:
             result = (i[0], 'Good')
     else:
-        result = get_cut_w_disjoint_start_stop(i[0])
-
+        try:
+            result = get_cut_w_disjoint_start_stop(i[0])
+        except FileNotFoundError:
+            result = (i[0], 'FileNotFoundError')
+    print(result)
     return result
