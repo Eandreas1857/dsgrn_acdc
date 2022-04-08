@@ -742,7 +742,7 @@ def test_any_path_exists_in_product(string, network_filename):
             break
 
     if result == True:
-        c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, network_filename, 20, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
+        c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, start_set, stop_set, network_filename, 20, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
     
     C1s = [i for i in start_set if i in C1]
     C1t = [i for i in stop_set if i in C1]
