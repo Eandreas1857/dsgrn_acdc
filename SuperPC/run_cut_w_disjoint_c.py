@@ -41,7 +41,7 @@ def get_cut_w_disjoint_start_stop(network_filename):
     keep = build_diag(Hb_max, Kni_max, breaks)
     diagP = remove_unnecessary_nodes_in_P(P, breaks, keep, scc, Kni_max)
     start_set, stop_set = return_start_stop_set(database, diagP, scc, Hb_max, Kni_max, FP_Regions)
-    c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, start_set, stop_set, network_filename, 20, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
+    c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, start_set, stop_set, network_filename, 50, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
     
     C1s = [i for i in start_set if i in C1]
     C1t = [i for i in stop_set if i in C1]
@@ -52,22 +52,32 @@ def get_cut_w_disjoint_start_stop(network_filename):
 
     return results
 
+#def main(network_result):
+
+#    i = network_result
+#    key = 'Ck start/stop'
+#    if key in i[1]:
+#        if (i[1][key][0] !=[] and i[1][key][1] !=[]) or (i[1][key][2] !=[] and i[1][key][3] !=[]):
+#            try:
+#                result = get_cut_w_disjoint_start_stop(i[0])
+#            except FileNotFoundError:
+#                result = (i[0], 'FileNotFoundError')
+#        else:
+#            result = (i[0], 'Good')
+#    else:
+#        try:
+#            result = get_cut_w_disjoint_start_stop(i[0])
+#        except FileNotFoundError:
+#            result = (i[0], 'FileNotFoundError')
+#    print(result, flush = True)
+#    return result
+
 def main(network_result):
 
     i = network_result
-    key = 'Ck start/stop'
-    if key in i[1]:
-        if (i[1][key][0] !=[] and i[1][key][1] !=[]) or (i[1][key][2] !=[] and i[1][key][3] !=[]):
-            try:
-                result = get_cut_w_disjoint_start_stop(i[0])
-            except FileNotFoundError:
-                result = (i[0], 'FileNotFoundError')
-        else:
-            result = (i[0], 'Good')
-    else:
-        try:
-            result = get_cut_w_disjoint_start_stop(i[0])
-        except FileNotFoundError:
-            result = (i[0], 'FileNotFoundError')
+    try:
+        result = get_cut_w_disjoint_start_stop(i[0])
+    except FileNotFoundError:
+        result = (i[0], 'FileNotFoundError')
     print(result, flush = True)
     return result

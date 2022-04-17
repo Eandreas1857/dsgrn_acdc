@@ -278,54 +278,74 @@ def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodeli
     eigval, Y = k_smallest_eigvec(nodelist, L, 2, return_eigenvec=True)
 
     eigv = sorted(Y[:,1])
-    diff = []
-    for i in range(len( eigv )-1):
-        diff.append( ( abs(eigv[i] - eigv[i+1]) , eigv[i], eigv[i+1] ) ) 
 
-    diff.sort(key=lambda a: a[0])
+    avg_start = sum([eigv[nodelist.index(s)] for s in start_set])/len(start_set)
+    avg_stop = sum([eigv[nodelist.index(s)] for s in stop_set])/len(stop_set)
+    
+    if avg_start > avg_stop:
+        A = start_set
+        B = stop_set
+    else:
+        A = stop_set
+        B = start_set
 
-    cut_list = []
-    for t in diff[-top_k:]:
-        C1 = []
-        C2 = []
-        m = t[1] + (t[2]-t[1])/2
-        for n in nodelist:
-            index = nodelist.index(n)
-            if Y[:,1][index] >= m:
-                C1.append(n)
+    mini = min( [eigv[nodelist.index(s)] for s in A])
+    maxm = max( [eigv[nodelist.index(s)] for s in B])
+
+    issue = False
+    if maxm > mini:
+        issue = True
+
+    if issue == False:
+        diff = []
+        for i in range(len( eigv )-1):
+            diff.append( ( abs(eigv[i] - eigv[i+1]) , eigv[i], eigv[i+1] ) ) 
+
+        diff.sort(key=lambda a: a[0])
+
+        cut_list = []
+        for t in diff[-top_k:]:
+            C1 = []
+            C2 = []
+            m = t[1] + (t[2]-t[1])/2
+            for n in nodelist:
+                index = nodelist.index(n)
+                if Y[:,1][index] >= m:
+                    C1.append(n)
+                else:
+                    C2.append(n)
+            cluster_list = [C1, C2]
+            C1s = [i for i in start_set if i in C1]
+            C1t = [i for i in stop_set if i in C1]
+            C2s = [i for i in start_set if i in C2]
+            C2t = [i for i in stop_set if i in C2]
+            if (C1s !=[] and C1t !=[]) or (C2s !=[] and C2t !=[]):
+                continue
             else:
-                C2.append(n)
-        cluster_list = [C1, C2]
-        C1s = [i for i in start_set if i in C1]
-        C1t = [i for i in stop_set if i in C1]
-        C2s = [i for i in start_set if i in C2]
-        C2t = [i for i in stop_set if i in C2]
-        if (C1s !=[] and C1t !=[]) or (C2s !=[] and C2t !=[]):
-            continue
-        else:
-            V = indicator_vector(nodelist, cluster_list)
-            c, Ck_cut = WCut(D, W, D, V)
-            cut_list.append((c,m,C1,C2, Ck_cut))
+                V = indicator_vector(nodelist, cluster_list)
+                c, Ck_cut = WCut(D, W, D, V)
+                cut_list.append((c,m,C1,C2, Ck_cut))
 
-    if cut_list != []:
-        cut_list.sort(key=lambda a: a[0])
-        c, m, C1, C2, Ck_cut = cut_list[0]
-    else:
-        return (0, 0, 0, [], [], {0:0, 1:0})
-        
-    plt.figure(figsize=(15, 8))
-    for i in nodelist:
-        index = nodelist.index(i)
-        if i in C1:
-            plt.scatter(x=index, y=Y[:,1][index], color = 'r')
+        if cut_list != []:
+            cut_list.sort(key=lambda a: a[0])
+            c, m, C1, C2, Ck_cut = cut_list[0]
         else:
-            plt.scatter(x=index, y=Y[:,1][index], color = 'b')
-    plt.title(network_filename + ' second smallest eigenvec with cluster split at ' + str(round(m,4)) + '. WCut='+str(round(c,4)))
-    
-    if save_file == True:
-        plt.savefig(network_filename + 'cluster_split_at_' + str(round(m,4)) + '_cut_'+str(round(c,4))+ '_diagP.png')   # save the figure to file
-        plt.close() 
+            return (0, 0, 0, [], [], {0:0, 1:0})
+            
+        plt.figure(figsize=(15, 8))
+        for i in nodelist:
+            index = nodelist.index(i)
+            if i in C1:
+                plt.scatter(x=index, y=Y[:,1][index], color = 'r')
+            else:
+                plt.scatter(x=index, y=Y[:,1][index], color = 'b')
+        plt.title(network_filename + ' second smallest eigenvec with cluster split at ' + str(round(m,4)) + '. WCut='+str(round(c,4)))
+        
+        if save_file == True:
+            plt.savefig(network_filename + 'cluster_split_at_' + str(round(m,4)) + '_cut_'+str(round(c,4))+ '_diagP.png')   # save the figure to file
+            plt.close() 
+        else:
+            plt.show()
     else:
-        plt.show()
-    
+        return ('issue', 0, 0, [], [], {0:0, 1:0})
     return c, eigval[1], m, C1, C2, Ck_cut
