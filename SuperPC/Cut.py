@@ -315,10 +315,10 @@ def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodeli
                 else:
                     C2.append(n)
             cluster_list = [C1, C2]
-            C1s = [i for i in start_set if i in C1]
-            C1t = [i for i in stop_set if i in C1]
-            C2s = [i for i in start_set if i in C2]
-            C2t = [i for i in stop_set if i in C2]
+            C1s = list(set(start_set).intersection(C1))
+            C1t = list(set(stop_set).intersection(C1))
+            C2s = list(set(start_set).intersection(C2))
+            C2t = list(set(stop_set).intersection(C2))
             if (C1s !=[] and C1t !=[]) or (C2s !=[] and C2t !=[]):
                 continue
             else:
@@ -330,7 +330,7 @@ def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodeli
             cut_list.sort(key=lambda a: a[0])
             c, m, C1, C2, Ck_cut = cut_list[0]
         else:
-            return (0, 0, 0, set(), set(), {0:0, 1:0})
+            return (0, 0, 0, [], [], {0:0, 1:0})
             
         plt.figure(figsize=(15, 8))
         for i in nodelist:
@@ -347,5 +347,5 @@ def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodeli
         else:
             plt.show()
     else:
-        return ('issue', 0, 0, set(), set(), {0:0, 1:0})
+        return ('issue', 0, 0, [], [], {0:0, 1:0})
     return c, eigval[1], m, C1, C2, Ck_cut

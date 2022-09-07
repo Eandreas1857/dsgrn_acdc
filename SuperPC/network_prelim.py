@@ -764,12 +764,12 @@ def network_results(database, network, network_filename):
     if path_exists == True:
         c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, start_set, stop_set, network_filename, 20, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
     else:
-        c, eigval, m, C1, C2, Ck_cut = 0, 0, 0, set(), set(), 0
+        c, eigval, m, C1, C2, Ck_cut = 0, 0, 0, [], [], 0
 
-    C1s = set(start_set).intersection(C1)
-    C1t = set(stop_set).intersection(C1)
-    C2s = set(start_set).intersection(C2)
-    C2t = set(stop_set).intersection(C2)
+    C1s = list(set(start_set).intersection(C1))
+    C1t = list(set(stop_set).intersection(C1))
+    C2s = list(set(start_set).intersection(C2))
+    C2t = list(set(stop_set).intersection(C2))
 
     mP =  P_with_absorbing_nodes(database, N, diagP, scc, FP_Regions, stop_set)
     markov_results = absorbing_Markov_prob(mP, scc, start_set)
