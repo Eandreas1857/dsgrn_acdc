@@ -764,7 +764,7 @@ def network_results(database, network, network_filename):
     if path_exists == True:
         c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, start_set, stop_set, network_filename, 20, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
     else:
-        c, eigval, m, C1, C2, Ck_cut = 0, 0, 0, [], [], 0
+        c, eigval, m, C1, C2, Ck_cut = 0, 0, 0, set(), set(), 0
 
     C1s = set(start_set).intersection(C1)
     C1t = set(stop_set).intersection(C1)
@@ -786,7 +786,7 @@ def get_results_from_string(string, network_filename):
     f.write(string)
     f.close()
 
-    with open(network_txt_filename,"r") as f:
+    with open(txt_filename,"r") as f:
         network = f.read()
 
     db_filename = network_filename + ".db"
