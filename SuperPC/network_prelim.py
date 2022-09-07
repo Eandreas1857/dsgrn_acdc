@@ -791,8 +791,12 @@ def get_results_from_string(string, network_filename):
 
     db_filename = network_filename + ".db"
     #os.system("mpiexec -n 2 Signatures "+ txt_filename + ' ' + db_filename) #current files have a db already
-
-    database = Database(db_filename)
+    try:
+        database = Database(db_filename)
+    except:
+        os.system("mpiexec -n 2 Signatures "+ txt_filename + ' ' + db_filename)
+        print('database constructed for ' + network_filename, flush=True)
+        database = Database(db_filename)
 
     results = network_results(database, network, network_filename)
 

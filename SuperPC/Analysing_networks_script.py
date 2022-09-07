@@ -7,7 +7,7 @@ def run(network_file, filename):
     network_list = json.load(open(network_file))
     #random_network_sample = random.sample(network_list, 50)
     pool = mp.Pool(3)
-    output = pool.map(network_prelim.main, network_list[0:2])
+    output = pool.map(network_prelim.main, network_list[0:50])
     results = dict(output)
     json.dump(results, open(filename, 'w'))
 
