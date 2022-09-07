@@ -71,6 +71,101 @@ def get_network_string(edges, bool):
 
     return '"""Hb : ' + new['Hb'] + '\n' + 'Gt : ' + new['Gt'] + '\n' + 'Kr : ' + new['Kr'] + '\n' + 'Kni : ' + new['Kni'] + '"""'
 
+#def get_grad_graph_strict_bagged(database, network_string):
+#    pg = DSGRN.ParameterGraph(database.network)
+#    c = database.conn.cursor()
+#
+#    out_edges = get_number_out_edges_from_string(network_string)
+#    FP_Poset = get_FP_Poset(out_edges)[0]
+#    FP_keep = [node for node in FP_Poset.keys()]
+#
+#    Hb_list, Kni_list = get_Hb_Kni_list(database)
+#    Hb = {}
+#    for i in Hb_list:
+#        for j in Hb_list[i]:
+#            Hb[j] = i
+#    Kni = {}
+#    for i in Kni_list:
+#        for j in Kni_list[i]:
+#            Kni[j] = i
+#
+#    G = nx.DiGraph()
+#    for s in range(pg.size()):
+#        MGI_result = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(s))
+#        MGI = MGI_result.fetchone()[0]
+#        FP_result = [row[0] for row in c.execute('select Label from MorseGraphAnnotations where MorseGraphIndex is ' + str(MGI))]
+#        if len(FP_result) == 1 and FP_result[0][0:2] == 'FP':
+#            if set(FP_result).intersection(set(FP_keep)):
+#                sHb = Hb[((((pg.parameter(s)).logic())[0]).stringify())[6:-2]]
+#                sKni = Kni[((((pg.parameter(s)).logic())[3]).stringify())[6:-2]]
+#                for t in list(pg.adjacencies(s, 'codim1')):
+#                    MGI_result = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(t))
+#                    MGI = MGI_result.fetchone()[0]
+#                    FP_result = [row[0] for row in c.execute('select Label from MorseGraphAnnotations where MorseGraphIndex is ' + str(MGI))]
+#                    if len(FP_result) == 1 and FP_result[0][0:2] == 'FP':
+#                        if set(FP_result).intersection(set(FP_keep)):
+#                            tHb = Hb[((((pg.parameter(t)).logic())[0]).stringify())[6:-2]]
+#                            tKni = Kni[((((pg.parameter(t)).logic())[3]).stringify())[6:-2]] 
+#                            if sHb+1 == tHb and sKni == tKni:
+#                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
+#                            elif sHb == tHb and sKni+1 == tKni:
+#                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))
+#                            elif sHb == tHb and sKni == tKni:
+#                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
+#    return G
+#
+#def get_grad_graph_strict_bagged(database, network_string):
+#    pg = DSGRN.ParameterGraph(database.network)
+#    c = database.conn.cursor()
+#
+#    out_edges = get_number_out_edges_from_string(network_string)
+#    FP_Poset = get_FP_Poset(out_edges)[0]
+#    FP_keep = [node for node in FP_Poset.keys()]
+#
+#    Hb_list, Kni_list = get_Hb_Kni_list(database)
+#    Hb = {}
+#    for i in Hb_list:
+#        for j in Hb_list[i]:
+#            Hb[j] = i
+#    Kni = {}
+#    for i in Kni_list:
+#        for j in Kni_list[i]:
+#            Kni[j] = i
+#
+#    monostable_query_object = MonostableQuery(database)
+#    matches = monostable_query_object.matches()
+#
+#    mgs = {}
+#    for row in c.execute('select MorseGraphIndex, Label from MorseGraphAnnotations'):
+#        if row[1] in FP_keep:
+#            if row[0] in matches:
+#                if row[0] in mgs:
+#                    mgs[row[0]].append(row[1][0:2]) 
+#                else:
+#                    mgs[row[0]] = [row[1][0:2]] 
+#
+#    set_of_MGIm = list(i for i in mgs if mgs[i].count('FP') == 1)
+#
+#    string = 'select * from Signatures where MorseGraphIndex in ({seq})'.format(seq=','.join(['?'] * len(set_of_MGIm)))
+#    PGIset = [row[0] for row in c.execute(string, set_of_MGIm)]
+#
+#    G = nx.DiGraph()
+#    for s in PGIset:
+#        newVariable = (pg.parameter(s)).logic()
+#        sHb = Hb[((((pg.parameter(s)).logic())[0]).stringify())[6:-2]]
+#        sKni = Kni[((((pg.parameter(s)).logic())[3]).stringify())[6:-2]]
+#        for t in list(pg.adjacencies(s, 'codim1')):
+#            if t in PGIset:
+#                tHb = Hb[((((pg.parameter(t)).logic())[0]).stringify())[6:-2]]
+#                tKni = Kni[((((pg.parameter(t)).logic())[3]).stringify())[6:-2]] 
+#                if sHb+1 == tHb and sKni == tKni:
+#                    G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
+#                elif sHb == tHb and sKni+1 == tKni:
+#                    G.add_edge((sHb, sKni, s), (tHb, tKni, t))
+#                elif sHb == tHb and sKni == tKni:
+#                    G.add_edge((sHb, sKni, s), (tHb, tKni, t)) 
+#    return G
+#
 def get_grad_graph_strict_bagged(database, network_string):
     pg = DSGRN.ParameterGraph(database.network)
     c = database.conn.cursor()
@@ -89,29 +184,48 @@ def get_grad_graph_strict_bagged(database, network_string):
         for j in Kni_list[i]:
             Kni[j] = i
 
+    monostable_query_object = MonostableQuery(database)
+    matches = monostable_query_object.matches()
+
+    mgs = {}
+    for row in c.execute('select MorseGraphIndex, Label from MorseGraphAnnotations'):
+        if row[1] in FP_keep:
+            if row[0] in matches:
+                if row[0] in mgs:
+                    mgs[row[0]].append(row[1][0:2]) 
+                else:
+                    mgs[row[0]] = [row[1][0:2]] 
+
+    set_of_MGIm = list(i for i in mgs if mgs[i].count('FP') == 1)
+
+    string = 'select * from Signatures where MorseGraphIndex in ({seq})'.format(seq=','.join(['?'] * len(set_of_MGIm)))
+    PGIset = [row[0] for row in c.execute(string, set_of_MGIm)]
+
+    adj = {}
+    S = set(PGIset) 
+    for s in PGIset:
+        adj[s] = set(pg.adjacencies(s, 'codim1')).intersection(S)
+
+    layers_PGI = {}
+    for s in PGIset:
+        logic = (pg.parameter(s)).logic()
+        sHb = Hb[((logic[0]).stringify())[6:-2]]
+        sKni = Kni[((logic[3]).stringify())[6:-2]]
+        layers_PGI[s] = (sHb, sKni)
+
     G = nx.DiGraph()
-    for s in range(pg.size()):
-        MGI_result = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(s))
-        MGI = MGI_result.fetchone()[0]
-        FP_result = [row[0] for row in c.execute('select Label from MorseGraphAnnotations where MorseGraphIndex is ' + str(MGI))]
-        if len(FP_result) == 1 and FP_result[0][0:2] == 'FP':
-            if set(FP_result).intersection(set(FP_keep)):
-                sHb = Hb[((((pg.parameter(s)).logic())[0]).stringify())[6:-2]]
-                sKni = Kni[((((pg.parameter(s)).logic())[3]).stringify())[6:-2]]
-                for t in list(pg.adjacencies(s, 'codim1')):
-                    MGI_result = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(t))
-                    MGI = MGI_result.fetchone()[0]
-                    FP_result = [row[0] for row in c.execute('select Label from MorseGraphAnnotations where MorseGraphIndex is ' + str(MGI))]
-                    if len(FP_result) == 1 and FP_result[0][0:2] == 'FP':
-                        if set(FP_result).intersection(set(FP_keep)):
-                            tHb = Hb[((((pg.parameter(t)).logic())[0]).stringify())[6:-2]]
-                            tKni = Kni[((((pg.parameter(t)).logic())[3]).stringify())[6:-2]] 
-                            if sHb+1 == tHb and sKni == tKni:
-                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
-                            elif sHb == tHb and sKni+1 == tKni:
-                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))
-                            elif sHb == tHb and sKni == tKni:
-                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
+    for s in PGIset:
+        for t in adj[s]:
+            sHb = layers_PGI[s][0]
+            sKni = layers_PGI[s][1]
+            tHb = layers_PGI[t][0]
+            tKni = layers_PGI[t][1] 
+            if sHb+1 == tHb and sKni == tKni:
+                G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
+            elif sHb == tHb and sKni+1 == tKni:
+                G.add_edge((sHb, sKni, s), (tHb, tKni, t))
+            elif sHb == tHb and sKni == tKni:
+                G.add_edge((sHb, sKni, s), (tHb, tKni, t))
     return G
 
 def reduce_gradient_graph_to_nodes_of_interest(database, grad_graph, FP_Poset):
@@ -746,12 +860,12 @@ def get_info(network_filename, graphml_filename, grad_graph_filename, k):
     pg = ParameterGraph(net)
     print('pg size', pg.size())
 
-    grad_graph = grad_graph = load_json(grad_graph_filename)
+    grad_graph = load_json(grad_graph_filename)
     print('grad size', len(grad_graph))
 
     out_edges = get_number_out_edges_from_string(network)
     FP_Poset, FP_Regions = get_FP_Poset(out_edges)
-    G = reduce_gradient_graph_to_nodes_of_interest(database, grad_graph, FP_Poset)[0]
+    
     print('r grad size', len(G), len(G.edges()))
     avg, prob, percentile = score_region_transitions(database, G, FP_Regions)
     print("avg, prob, percentile: ", avg, prob, percentile)

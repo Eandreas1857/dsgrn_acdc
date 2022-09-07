@@ -117,7 +117,7 @@ def get_network_string(edges, bool):
     return '"""Hb : ' + new['Hb'] + '\n' + 'Gt : ' + new['Gt'] + '\n' + 'Kr : ' + new['Kr'] + '\n' + 'Kni : ' + new['Kni'] + '"""'
 
 def get_grad_graph_strict_bagged(database, network_string):
-    pg = ParameterGraph(database.network)
+    pg = DSGRN.ParameterGraph(database.network)
     c = database.conn.cursor()
 
     out_edges = get_number_out_edges_from_string(network_string)
@@ -134,30 +134,49 @@ def get_grad_graph_strict_bagged(database, network_string):
         for j in Kni_list[i]:
             Kni[j] = i
 
-    G = nx.DiGraph()
-    for s in range(pg.size()):
-        MGI_result = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(s))
-        MGI = MGI_result.fetchone()[0]
-        FP_result = [row[0] for row in c.execute('select Label from MorseGraphAnnotations where MorseGraphIndex is ' + str(MGI))]
-        if len(FP_result) == 1 and FP_result[0][0:2] == 'FP':
-            if set(FP_result).intersection(set(FP_keep)):
-                sHb = Hb[((((pg.parameter(s)).logic())[0]).stringify())[6:-2]]
-                sKni = Kni[((((pg.parameter(s)).logic())[3]).stringify())[6:-2]]
+    monostable_query_object = MonostableQuery(database)
+    matches = monostable_query_object.matches()
 
-                for t in list(pg.adjacencies(s, 'codim1')):
-                    MGI_result = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(t))
-                    MGI = MGI_result.fetchone()[0]
-                    FP_result = [row[0] for row in c.execute('select Label from MorseGraphAnnotations where MorseGraphIndex is ' + str(MGI))]
-                    if len(FP_result) == 1 and FP_result[0][0:2] == 'FP':
-                        if set(FP_result).intersection(set(FP_keep)):
-                            tHb = Hb[((((pg.parameter(t)).logic())[0]).stringify())[6:-2]]
-                            tKni = Kni[((((pg.parameter(t)).logic())[3]).stringify())[6:-2]] 
-                            if sHb+1 == tHb and sKni == tKni:
-                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
-                            elif sHb == tHb and sKni+1 == tKni:
-                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))
-                            elif sHb == tHb and sKni == tKni:
-                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
+    mgs = {}
+    for row in c.execute('select MorseGraphIndex, Label from MorseGraphAnnotations'):
+        if row[1] in FP_keep:
+            if row[0] in matches:
+                if row[0] in mgs:
+                    mgs[row[0]].append(row[1][0:2]) 
+                else:
+                    mgs[row[0]] = [row[1][0:2]] 
+
+    set_of_MGIm = list(i for i in mgs if mgs[i].count('FP') == 1)
+
+    string = 'select * from Signatures where MorseGraphIndex in ({seq})'.format(seq=','.join(['?'] * len(set_of_MGIm)))
+    PGIset = [row[0] for row in c.execute(string, set_of_MGIm)]
+
+    adj = {}
+    S = set(PGIset) 
+    for s in PGIset:
+        adj[s] = set(pg.adjacencies(s, 'codim1')).intersection(S)
+
+    layers_PGI = {}
+    for s in PGIset:
+        logic = (pg.parameter(s)).logic()
+        sHb = Hb[((logic[0]).stringify())[6:-2]]
+        sKni = Kni[((logic[3]).stringify())[6:-2]]
+        layers_PGI[s] = (sHb, sKni)
+
+    G = nx.DiGraph()
+    for s in PGIset:
+        for t in adj[s]:
+            sHb = layers_PGI[s][0]
+            sKni = layers_PGI[s][1]
+            tHb = layers_PGI[t][0]
+            tKni = layers_PGI[t][1] 
+            if sHb+1 == tHb and sKni == tKni:
+                G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
+            elif sHb == tHb and sKni+1 == tKni:
+                G.add_edge((sHb, sKni, s), (tHb, tKni, t))
+            elif sHb == tHb and sKni == tKni:
+                G.add_edge((sHb, sKni, s), (tHb, tKni, t))
+    print(len(G.nodes()))
     return G
 
 def get_product_graph(database, cG, scc, FP_Poset):
@@ -469,7 +488,8 @@ def build_diag(Hb_max, Kni_max, breaks):
     return keep
 
 def remove_unnecessary_nodes_in_P(P, breaks, keep, scc, Kni_max):
-    diagP = deepcopy(P)
+    nodelist = list(P.nodes())
+    
     for b in breaks:
         if (b[0]-1,b[1]) in breaks:
             for k in range(b[1]+1, Kni_max+1):
@@ -484,14 +504,14 @@ def remove_unnecessary_nodes_in_P(P, breaks, keep, scc, Kni_max):
                 except:
                     KeyError
 
-    for node in P:
+    for node in nodelist:
         if scc[node][0][0:2] not in keep:
-            diagP.remove_node(node)
+            P.remove_node(node)
 
-    return diagP
+    return P
 
-def add_source_weight_to_cond(G, cond, scc):
-
+def add_source_weight_to_cond(G, cond, scc, save_count = False):
+    scc_edges = {}
     for node in cond:
         count = 0
         for edge in cond[node]:
@@ -502,10 +522,13 @@ def add_source_weight_to_cond(G, cond, scc):
                         yes_count += 1
                         count +=1
             cond[node][edge]['weight'] = yes_count
-            
+            if save_count == True:
+                scc_edges[(node,edge)] = yes_count
+
         for edge in cond[node]:
             cond[node][edge]['weight'] = cond[node][edge]['weight']/count
-    return cond
+
+    return cond if save_count == False else (cond, scc_edges)
 
 def check(database, s, t, scc, FP_Regions):
     ps = scc[s][0][-1]
@@ -538,7 +561,8 @@ def P_with_absorbing_nodes(database, N, diagP, scc, FP_Regions, stop_set):
     mP.add_edge('skip', 'skip', weight = 1)
 
     for s in stop_set:
-        for t in [n for n in mP.neighbors(s)]:
+        adj = [n for n in mP.neighbors(s)]
+        for t in adj:
             mP.remove_edge(s,t)
         mP.add_edge(s,s, weight = 1)
 
@@ -551,7 +575,8 @@ def P_with_absorbing_nodes(database, N, diagP, scc, FP_Regions, stop_set):
             rpert_sum = 0
             skip_sum = 0
             pert_sum = 0
-            for (s,t) in N.edges(n):
+            edgelist = N.edges(n)
+            for (s,t) in edgelist:
                 if (s,t) not in pE:
                     if t not in pV:
                         leak_sum += w[s,t]
@@ -644,7 +669,32 @@ def absorbing_Markov_prob(mP, scc, start_set):
     results['leak + skip'] = l_s
     return  results
 
-def test_any_path_exists_in_product(string, network_filename):
+def any_path_exists(G, start_set, stop_set):
+    if start_set == []:
+        result = False
+    if stop_set == []:
+        result = False
+                
+    else:
+        for s in start_set:
+            for t in stop_set:
+                try:
+                    nx.shortest_path(G, s, t)
+                    result = True
+                    break
+                except:
+                    if s == start_set[-1]:
+                        if t == stop_set[-1]:
+                            result = False
+                            break
+                    else:
+                        continue
+            else:
+                continue        
+            break
+    return result
+
+def network_results(database, network, network_filename):
     '''
     string: network string.
     network_filename: Name wanting to save network text file as, expects that .txt not at end.
@@ -652,20 +702,8 @@ def test_any_path_exists_in_product(string, network_filename):
     '''
     Max_mem = 90
     # Make DSGRN database and network txt file
-    
-    txt_filename = network_filename + ".txt"
-    f = open(txt_filename,"w") # Make txt file for network, needed to build DSGRN database
-    f.write(string)
-    f.close()
-
-    net = DSGRN.Network(string)
-    pg = ParameterGraph(net)
-
-    db_filename = network_filename + ".db"
-    os.system("mpiexec -n 2 Signatures "+ txt_filename + ' ' + db_filename)
-    database = Database(db_filename)
-
-    out_edges = get_number_out_edges_from_string(string)
+    pg = ParameterGraph(database.network)
+    out_edges = get_number_out_edges_from_string(network)
     Hb_list, Kni_list = get_Hb_Kni_list(database)
     Hb_max = len(Hb_list)-1
     Kni_max = len(Kni_list)-1
@@ -674,17 +712,17 @@ def test_any_path_exists_in_product(string, network_filename):
 
     # Compute G (grad_graph) and save.
 
-    G = get_grad_graph_strict_bagged(database, string)
-    grad_graph_filename = "grad_graph_strict_" + network_filename
+    G = get_grad_graph_strict_bagged(database, network)
+    #grad_graph_filename = "grad_graph_true_monostable_" + network_filename
 
     if check_memory(network_filename, Max_mem)>Max_mem:
         return network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'mem': 'process killed due to memory error'} 
 
-    grad_graph = {}
-    for n in G:
-        grad_graph[n] = [nbr for nbr in G.neighbors(n)]
+    #grad_graph = {}
+    #for n in G:
+    #    grad_graph[n] = [nbr for nbr in G.neighbors(n)]
 
-    save_json(grad_graph, grad_graph_filename)
+    #save_json(grad_graph, grad_graph_filename)
 
     # Compute condensation cG of G
 
@@ -697,7 +735,7 @@ def test_any_path_exists_in_product(string, network_filename):
         for edge in cG[node]:
             N.add_edge(node, edge)
 
-    add_source_weight_to_cond(G, N, scc)
+    N, scc_edges = add_source_weight_to_cond(G, N, scc, save_count = True)
 
     # Compute Product graph P and the restricted diagonal Product diagP
 
@@ -709,63 +747,64 @@ def test_any_path_exists_in_product(string, network_filename):
     keep = build_diag(Hb_max, Kni_max, breaks)
     diagP = remove_unnecessary_nodes_in_P(P, breaks, keep, scc, Kni_max)
 
+    edges_in_G = 0
+    nodes_in_G = 0
+    for n in diagP:
+        nodes_in_G += len(scc[n])
+        for e in diagP[n]:
+            edges_in_G += scc_edges[(n,e)]
+
     plot_FG_layer_comb_in_G(diagP, scc, Hb_max, 'scc FG layer combos ' + network_filename)
 
     # Test is any paths exist
     start_set, stop_set = return_start_stop_set(database, diagP, scc, Hb_max, Kni_max, FP_Regions)
 
-    if start_set == []:
-        #print("Empty start set")
-        result = False
-    if stop_set == []:
-        #print("Empty stop set")
-        result = False
-                
-    else:
-        for s in start_set:
-            for t in stop_set:
-                try:
-                    nx.shortest_path(cG, s, t)
-                    #print('Path exists from ' + str(s) + ' to '+ str(t))
-                    result = True
-                    break
-                except:
-                    if s == start_set[-1]:
-                        if t == stop_set[-1]:
-                            #print('No Path Exists')
-                            result = False
-                            break
-                    else:
-                        continue
-            else:
-                continue        
-            break
+    path_exists = any_path_exists(diagP, start_set, stop_set)
 
-    if result == True:
+    if path_exists == True:
         c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, start_set, stop_set, network_filename, 20, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
-    
-    C1s = [i for i in start_set if i in C1]
-    C1t = [i for i in stop_set if i in C1]
-    C2s = [i for i in start_set if i in C2]
-    C2t = [i for i in stop_set if i in C2]
+    else:
+        c, eigval, m, C1, C2, Ck_cut = 0, 0, 0, [], [], 0
+
+    C1s = set(start_set).intersection(C1)
+    C1t = set(stop_set).intersection(C1)
+    C2s = set(start_set).intersection(C2)
+    C2t = set(stop_set).intersection(C2)
 
     mP =  P_with_absorbing_nodes(database, N, diagP, scc, FP_Regions, stop_set)
     markov_results = absorbing_Markov_prob(mP, scc, start_set)
 
-    results = (network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'cG size': len(cG.nodes()), 'cG edges': len(cG.edges()), 'P size' : lenP_nodes, 'P edges': lenP_edges, 'diagP size': len(diagP.nodes()), 'diagP edges': len(diagP.edges), 'path exists': result, 'WCut': c, 'eigval': eigval, 'Ck cut': Ck_cut, 'Ck start/stop': [C1s, C1t, C2s, C2t], 'markov_results': markov_results})
+    results = (network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'cG size': len(cG.nodes()), 'cG edges': len(cG.edges()), 'P size' : lenP_nodes, 'P edges': lenP_edges, 'diagP size': len(diagP.nodes()), 'diagP edges': len(diagP.edges), 'diagP nodes in G': nodes_in_G, 'diagP edges in G': edges_in_G, 'path exists': path_exists, 'WCut': c, 'eigval': eigval, 'Ck cut': Ck_cut, 'Ck start/stop': [C1s, C1t, C2s, C2t], 'markov_results': markov_results})
 
     print(results, flush=True)
 
     return results
 
+def get_results_from_string(string, network_filename):
+    txt_filename = network_filename + ".txt"
+    f = open(txt_filename,"w") # Make txt file for network, needed to build DSGRN database
+    f.write(string)
+    f.close()
 
-#def main(network_tup):
+    with open(network_txt_filename,"r") as f:
+        network = f.read()
 
-#    network_filename = 'network' + str(network_tup[0])
-#    network = get_network_string(network_tup[1], network_tup[-1])
+    db_filename = network_filename + ".db"
+    #os.system("mpiexec -n 2 Signatures "+ txt_filename + ' ' + db_filename) #current files have a db already
 
-#    results = test_any_path_exists_in_product(network, network_filename)
+    database = Database(db_filename)
 
-#    return results
+    results = network_results(database, network, network_filename)
+
+    return results
+
+def main(network_tup):
+
+    network_filename = 'network' + str(network_tup[0])
+    network = get_network_string(network_tup[1], network_tup[-1])
+
+    results = get_results_from_string(network, network_filename)
+
+    return results
 
 

@@ -7,11 +7,36 @@ import graphviz
 from DSGRN._dsgrn import *
 import networkx as nx
 
+#def get_gradlist_strict(database, Hb_list, Kni_list):
+#    c = database.conn.cursor()
+#    pg = DSGRN.ParameterGraph(database.network)
+#    #Create a new MGA table of strictly monostable FP's, this is what we will use to find parameter index's
+#    set_of_MGIm = list(set([ row[0] for row in c.execute('select MorseGraphIndex, Label, count(*) from MorseGraphAnnotations group by MorseGraphIndex') if row[-1]==1 and 'FP' in row[1]] ))
+#    string = 'select * from Signatures where MorseGraphIndex in ({seq})'.format(
+#        seq=','.join(['?'] * len(set_of_MGIm)))
+#    PGIset = [row[0] for row in c.execute(string, set_of_MGIm)]
+#    
+#    gradlist = {}
+#    for i in Hb_list:
+#        for j in Kni_list:
+#            gradlist[(i,j)] = [(i,j,x) for x in PGIset if ((((pg.parameter(x)).logic())[0]).stringify())[6:-2] in Hb_list[i] and ((((pg.parameter(x)).logic())[3]).stringify())[6:-2] in Kni_list[j]]
+#    return gradlist
+
+
 def get_gradlist_strict(database, Hb_list, Kni_list):
     c = database.conn.cursor()
     pg = DSGRN.ParameterGraph(database.network)
     #Create a new MGA table of strictly monostable FP's, this is what we will use to find parameter index's
-    set_of_MGIm = list(set([ row[0] for row in c.execute('select MorseGraphIndex, Label, count(*) from MorseGraphAnnotations group by MorseGraphIndex') if row[-1]==1 and 'FP' in row[1]] ))
+    monostable_query_object = MonostableQuery(database)
+    matches = monostable_query_object.matches()
+    mgs = {}
+    for row in c.execute('select MorseGraphIndex, Label from MorseGraphAnnotations'):
+        if row[0] in matches:
+            if row[0] in mgs:
+                mgs[row[0]].append(row[1][0:2]) 
+            else:
+                mgs[row[0]] = [row[1][0:2]] 
+    set_of_MGIm = list(i for i in mgs if mgs[i].count('FP') == 1)
     string = 'select * from Signatures where MorseGraphIndex in ({seq})'.format(
         seq=','.join(['?'] * len(set_of_MGIm)))
     PGIset = [row[0] for row in c.execute(string, set_of_MGIm)]
