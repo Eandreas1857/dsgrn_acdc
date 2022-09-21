@@ -41,6 +41,9 @@ def get_region_head(Phenotype_pattern, num_out_thresh):
             region_head[r] += [FP]
     return region_head
 
+def tup_subtract(tup1, tup2):
+    return tuple(map(lambda i, j: i - j, tup1, tup2))
+    
 def get_FP_Poset(out_edges):
     '''
     out_edges: dictinary with network nodes as keys and number of out edges as values.
