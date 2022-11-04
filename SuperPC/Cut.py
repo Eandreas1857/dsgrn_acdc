@@ -267,7 +267,7 @@ def WCut(D, W, T, X):
 
 
 
-def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodelist = None, data = None, in_out_degree = 'out', save_file = True):
+def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodelist = None, data = None, in_out_degree = 'out', save_file = True, general_cut = False):
 
     if nodelist == None:
         nodelist = list(G.nodes())
@@ -295,36 +295,67 @@ def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodeli
     issue = False
     if maxm > mini:
         issue = True
-
+    
     if issue == False:
         diff = []
         for i in range(len( eigv )-1):
-            diff.append( ( abs(eigv[i] - eigv[i+1]) , eigv[i], eigv[i+1] ) ) 
+            diff.append( ( abs(eigv[i] - eigv[i+1]) , eigv[i], eigv[i+1] ) )
 
         diff.sort(key=lambda a: a[0])
-
         cut_list = []
-        for t in diff[-top_k:]:
-            C1 = []
-            C2 = []
-            m = t[1] + (t[2]-t[1])/2
-            for n in nodelist:
-                index = nodelist.index(n)
-                if Y[:,1][index] >= m:
-                    C1.append(n)
+        if general_cut == False:
+            for t in diff[-top_k:]:
+                C1 = []
+                C2 = []
+                m = t[1] + (t[2]-t[1])/2
+                for n in nodelist:
+                    index = nodelist.index(n)
+                    if Y[:,1][index] >= m:
+                        C1.append(n)
+                    else:
+                        C2.append(n)
+                cluster_list = [C1, C2]
+                C1s = list(set(start_set).intersection(C1))
+                C1t = list(set(stop_set).intersection(C1))
+                C2s = list(set(start_set).intersection(C2))
+                C2t = list(set(stop_set).intersection(C2))
+                if (C1s !=[] and C1t !=[]) or (C2s !=[] and C2t !=[]):
+                    continue
                 else:
-                    C2.append(n)
-            cluster_list = [C1, C2]
-            C1s = list(set(start_set).intersection(C1))
-            C1t = list(set(stop_set).intersection(C1))
-            C2s = list(set(start_set).intersection(C2))
-            C2t = list(set(stop_set).intersection(C2))
-            if (C1s !=[] and C1t !=[]) or (C2s !=[] and C2t !=[]):
-                continue
-            else:
-                V = indicator_vector(nodelist, cluster_list)
-                c, Ck_cut = WCut(D, W, D, V)
-                cut_list.append((c,m,C1,C2, Ck_cut))
+                    V = indicator_vector(nodelist, cluster_list)
+                    c, Ck_cut = WCut(D, W, D, V)
+                    cut_list.append((c,m,C1,C2, Ck_cut))
+            if cut_list == []:
+                general_cut == True
+
+        if general_cut == True:
+            for i in diff:
+                if i[1] == maxm:
+                    a = diff.index(i)
+                if i[1] == mini:
+                    b = diff.index(i)
+            print(a,b, len(diff), flush=True)
+            for t in diff[a-1:b+1]:
+                C1 = []
+                C2 = []
+                m = t[1] + (t[2]-t[1])/2
+                for n in nodelist:
+                    index = nodelist.index(n)
+                    if Y[:,1][index] >= m:
+                        C1.append(n)
+                    else:
+                        C2.append(n)
+                cluster_list = [C1, C2]
+                C1s = list(set(start_set).intersection(C1))
+                C1t = list(set(stop_set).intersection(C1))
+                C2s = list(set(start_set).intersection(C2))
+                C2t = list(set(stop_set).intersection(C2))
+                if (C1s !=[] and C1t !=[]) or (C2s !=[] and C2t !=[]):
+                    continue
+                else:
+                    V = indicator_vector(nodelist, cluster_list)
+                    c, Ck_cut = WCut(D, W, D, V)
+                    cut_list.append((c,m,C1,C2, Ck_cut))
 
         if cut_list != []:
             cut_list.sort(key=lambda a: a[0])

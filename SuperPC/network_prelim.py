@@ -762,7 +762,7 @@ def network_results(database, network, network_filename):
     path_exists = any_path_exists(diagP, start_set, stop_set)
 
     if path_exists == True:
-        c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, start_set, stop_set, network_filename, 20, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True)
+        c, eigval, m, C1, C2, Ck_cut = find_best_clustering(diagP, start_set, stop_set, network_filename, 200, nodelist = None, data = 'weight', in_out_degree = 'out', save_file = True, general_cut=True)
     else:
         c, eigval, m, C1, C2, Ck_cut = 0, 0, 0, [], [], 0
 
