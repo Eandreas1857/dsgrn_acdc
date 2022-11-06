@@ -789,7 +789,7 @@ def get_results_from_string(string, network_filename):
     with open(txt_filename,"r") as f:
         network = f.read()
 
-    db_filename = network_filename + ".db"
+    db_filename = "/mnt/Storage/" + network_filename + ".db"
     #os.system("mpiexec -n 2 Signatures "+ txt_filename + ' ' + db_filename) #current files have a db already
     try:
         database = Database(db_filename)

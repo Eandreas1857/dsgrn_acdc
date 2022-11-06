@@ -279,8 +279,8 @@ def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodeli
 
     eigv = sorted(Y[:,1])
 
-    avg_start = sum([eigv[nodelist.index(s)] for s in start_set])/len(start_set)
-    avg_stop = sum([eigv[nodelist.index(s)] for s in stop_set])/len(stop_set)
+    avg_start = sum([Y[:,1][nodelist.index(s)] for s in start_set])/len(start_set)
+    avg_stop = sum([Y[:,1][nodelist.index(s)] for s in stop_set])/len(stop_set)
     
     if avg_start > avg_stop:
         A = start_set
@@ -288,9 +288,12 @@ def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodeli
     else:
         A = stop_set
         B = start_set
-
-    mini = min( [eigv[nodelist.index(s)] for s in A])
-    maxm = max( [eigv[nodelist.index(s)] for s in B])
+    sC = [(s,Y[:,1][nodelist.index(s)]) for s in start_set]
+    sD = [(s,Y[:,1][nodelist.index(s)]) for s in stop_set]
+    #print('start', sC, 'stop', sD)
+    mini = min( [Y[:,1][nodelist.index(s)] for s in A])
+    maxm = max( [Y[:,1][nodelist.index(s)] for s in B])
+    #print(avg_start, avg_stop, maxm, mini)
 
     issue = False
     if maxm > mini:
@@ -329,13 +332,13 @@ def find_best_clustering(G, start_set, stop_set, network_filename, top_k, nodeli
                 general_cut == True
 
         if general_cut == True:
-            for i in diff:
-                if i[1] == maxm:
-                    a = diff.index(i)
-                if i[1] == mini:
-                    b = diff.index(i)
-            print(a,b, len(diff), flush=True)
-            for t in diff[a-1:b+1]:
+            #for i in diff:
+            #    if i[1] == maxm:
+            #        a = diff.index(i)
+            #    if i[1] == mini:
+            #        b = diff.index(i)
+            #print(a,b, len(diff), flush=True)
+            for t in diff: #[a-1:b+1]
                 C1 = []
                 C2 = []
                 m = t[1] + (t[2]-t[1])/2
