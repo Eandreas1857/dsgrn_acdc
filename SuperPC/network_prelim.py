@@ -179,7 +179,7 @@ def get_grad_graph_strict_bagged(database, network_string):
     print(len(G.nodes()))
     return G
 
-def get_product_graph(database, cG, scc, FP_Poset):
+def get_product_graph(database, cG, scc, FP_Poset, start_set, stop_set):
     '''
     cG: condensation graph of gradient graph with only monostable fixed points and nodes in FP_Poset, expects networkx object.
     scc: dictonary of stongly connected components, where keys are node labels in given graph 
@@ -225,15 +225,14 @@ def get_product_graph(database, cG, scc, FP_Poset):
         P.remove_edge(edge[0],edge[1])
 
     P.remove_nodes_from(list(nx.isolates(cG)))
+    print('b4 reach P', len(P))
+    reachability(P, start_set, stop_set)
+    print('after reach P', len(P))
+    return P
 
-    start_set = []
-    for node in P:
-        p = scc[node][0]
-        if p[0] == 0 and p[1] == 0:
-            start_set.append(node)
-
-    del_list = []
-    for node in P.nodes():
+def reachability(P, start_set, stop_set):
+    nodelist = [node for node in P.nodes()]
+    for node in nodelist:
         for i in start_set:
             if node not in start_set:
                 try:
@@ -241,22 +240,14 @@ def get_product_graph(database, cG, scc, FP_Poset):
                     break
                 except:
                     if i == start_set[-1]:
-                        del_list.append(node)
+                        P.remove_node(node)
                         break
                     else:
                         continue
 
-    for node in del_list:   
-        P.remove_node(node)
+    nodelist = [node for node in P.nodes()]
 
-    stop_set = []
-    for node in P:
-        p = scc[node][0]
-        if p[0] == Hb_max and p[1] == Kni_max:
-            stop_set.append(node)
-
-    del_list = []
-    for node in P.nodes():
+    for node in nodelist:
         for i in stop_set:
             if node not in stop_set:
                 try:
@@ -264,14 +255,10 @@ def get_product_graph(database, cG, scc, FP_Poset):
                     break
                 except:
                     if i == stop_set[-1]:
-                        del_list.append(node)
+                        P.remove_node(node)
                         break
                     else:
-                        continue
-
-    for node in del_list:   
-        P.remove_node(node)
-
+                        continue    
     return P
 
 def return_start_stop_set(database, graph, scc, Hb_max, Kni_max, FP_Regions):
@@ -738,14 +725,20 @@ def network_results(database, network, network_filename):
     N, scc_edges = add_source_weight_to_cond(G, N, scc, save_count = True)
 
     # Compute Product graph P and the restricted diagonal Product diagP
-
-    P = get_product_graph(database, N, scc, FP_Poset)
+    start_set, stop_set = return_start_stop_set(database, cG, scc, Hb_max, Kni_max, FP_Regions)
+    
+    P = get_product_graph(database, N, scc, FP_Poset, start_set, stop_set)
+    print(len(P))
     lenP_nodes = len(P.nodes())
     lenP_edges = len(P.edges())
 
     breaks = find_breaks_in_FG_comb(database, network_filename, P, scc, Hb_max, Kni_max, FP_Regions) 
     keep = build_diag(Hb_max, Kni_max, breaks)
     diagP = remove_unnecessary_nodes_in_P(P, breaks, keep, scc, Kni_max)
+    print(len(diagP))
+
+    reachability(diagP, start_set, stop_set)
+    print(len(diagP))
 
     edges_in_G = 0
     nodes_in_G = 0
@@ -757,8 +750,7 @@ def network_results(database, network, network_filename):
     plot_FG_layer_comb_in_G(diagP, scc, Hb_max, 'scc FG layer combos ' + network_filename)
 
     # Test is any paths exist
-    start_set, stop_set = return_start_stop_set(database, diagP, scc, Hb_max, Kni_max, FP_Regions)
-
+    
     path_exists = any_path_exists(diagP, start_set, stop_set)
 
     if path_exists == True:
@@ -789,7 +781,7 @@ def get_results_from_string(string, network_filename):
     with open(txt_filename,"r") as f:
         network = f.read()
 
-    db_filename = "/mnt/Storage/" + network_filename + ".db"
+    db_filename = network_filename + ".db"
     #os.system("mpiexec -n 2 Signatures "+ txt_filename + ' ' + db_filename) #current files have a db already
     try:
         database = Database(db_filename)
