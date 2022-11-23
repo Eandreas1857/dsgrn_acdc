@@ -225,40 +225,52 @@ def get_product_graph(database, cG, scc, FP_Poset, start_set, stop_set):
         P.remove_edge(edge[0],edge[1])
 
     P.remove_nodes_from(list(nx.isolates(cG)))
-    print('b4 reach P', len(P))
+
     reachability(P, start_set, stop_set)
-    print('after reach P', len(P))
     return P
 
 def reachability(P, start_set, stop_set):
-    nodelist = [node for node in P.nodes()]
-    for node in nodelist:
-        for i in start_set:
-            if node not in start_set:
-                try:
-                    nx.shortest_path(P, i, node)
-                    break
-                except:
-                    if i == start_set[-1]:
-                        P.remove_node(node)
+    Done = False
+    count = 0
+    while Done == False:
+        count += 1
+        del_list = []
+        nodelist = [node for node in P.nodes()]
+        for node in nodelist:
+            for i in start_set:
+                if node not in start_set:
+                    try:
+                        nx.shortest_path(P, i, node)
                         break
-                    else:
-                        continue
+                    except:
+                        if i == start_set[-1]:
+                            P.remove_node(node)
+                            del_list.append(node)
+                            break
+                        else:
+                            continue
 
-    nodelist = [node for node in P.nodes()]
+        nodelist = [node for node in P.nodes()]
 
-    for node in nodelist:
-        for i in stop_set:
-            if node not in stop_set:
-                try:
-                    nx.shortest_path(P, node, i)
-                    break
-                except:
-                    if i == stop_set[-1]:
-                        P.remove_node(node)
+        for node in nodelist:
+            for i in stop_set:
+                if node not in stop_set:
+                    try:
+                        nx.shortest_path(P, node, i)
                         break
-                    else:
-                        continue    
+                    except:
+                        if i == stop_set[-1]:
+                            P.remove_node(node)
+                            del_list.append(node)
+                            break
+                        else:
+                            continue   
+        if del_list == []:
+            Done = True 
+            print(Done, count, flush=True)
+        if count == 10:
+            Done = True
+            print('Might have some disconnected parts.', flush=True)
     return P
 
 def return_start_stop_set(database, graph, scc, Hb_max, Kni_max, FP_Regions):
@@ -688,6 +700,7 @@ def network_results(database, network, network_filename):
     returns: True if paths exists, False if no paths exists in product graph.
     '''
     Max_mem = 90
+
     # Make DSGRN database and network txt file
     pg = ParameterGraph(database.network)
     out_edges = get_number_out_edges_from_string(network)
@@ -700,16 +713,9 @@ def network_results(database, network, network_filename):
     # Compute G (grad_graph) and save.
 
     G = get_grad_graph_strict_bagged(database, network)
-    #grad_graph_filename = "grad_graph_true_monostable_" + network_filename
 
     if check_memory(network_filename, Max_mem)>Max_mem:
         return network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'mem': 'process killed due to memory error'} 
-
-    #grad_graph = {}
-    #for n in G:
-    #    grad_graph[n] = [nbr for nbr in G.neighbors(n)]
-
-    #save_json(grad_graph, grad_graph_filename)
 
     # Compute condensation cG of G
 
@@ -728,17 +734,15 @@ def network_results(database, network, network_filename):
     start_set, stop_set = return_start_stop_set(database, cG, scc, Hb_max, Kni_max, FP_Regions)
     
     P = get_product_graph(database, N, scc, FP_Poset, start_set, stop_set)
-    print(len(P))
+
     lenP_nodes = len(P.nodes())
     lenP_edges = len(P.edges())
 
     breaks = find_breaks_in_FG_comb(database, network_filename, P, scc, Hb_max, Kni_max, FP_Regions) 
     keep = build_diag(Hb_max, Kni_max, breaks)
     diagP = remove_unnecessary_nodes_in_P(P, breaks, keep, scc, Kni_max)
-    print(len(diagP))
 
     reachability(diagP, start_set, stop_set)
-    print(len(diagP))
 
     edges_in_G = 0
     nodes_in_G = 0
@@ -766,7 +770,7 @@ def network_results(database, network, network_filename):
     mP =  P_with_absorbing_nodes(database, N, diagP, scc, FP_Regions, stop_set)
     markov_results = absorbing_Markov_prob(mP, scc, start_set)
 
-    results = (network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'cG size': len(cG.nodes()), 'cG edges': len(cG.edges()), 'P size' : lenP_nodes, 'P edges': lenP_edges, 'diagP size': len(diagP.nodes()), 'diagP edges': len(diagP.edges), 'diagP nodes in G': nodes_in_G, 'diagP edges in G': edges_in_G, 'path exists': path_exists, 'WCut': c, 'eigval': eigval, 'Ck cut': Ck_cut, 'Ck start/stop': [C1s, C1t, C2s, C2t], 'markov_results': markov_results})
+    results = (network_filename, {'PG size': pg.size(), 'G size': len(G.nodes()), 'G edges': len(G.edges()), 'cG size': len(cG.nodes()), 'cG edges': len(cG.edges()), 'P size' : lenP_nodes, 'P edges': lenP_edges, 'diagP size': len(diagP.nodes()), 'diagP edges': len(diagP.edges()), 'diagP nodes in G': nodes_in_G, 'diagP edges in G': edges_in_G, 'path exists': path_exists, 'WCut': c, 'eigval': eigval, 'Ck cut': Ck_cut, 'Ck start/stop': [C1s, C1t, C2s, C2t], 'markov_results': markov_results})
 
     print(results, flush=True)
 
