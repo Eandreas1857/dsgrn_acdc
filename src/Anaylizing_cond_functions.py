@@ -71,101 +71,6 @@ def get_network_string(edges, bool):
 
     return '"""Hb : ' + new['Hb'] + '\n' + 'Gt : ' + new['Gt'] + '\n' + 'Kr : ' + new['Kr'] + '\n' + 'Kni : ' + new['Kni'] + '"""'
 
-#def get_grad_graph_strict_bagged(database, network_string):
-#    pg = DSGRN.ParameterGraph(database.network)
-#    c = database.conn.cursor()
-#
-#    out_edges = get_number_out_edges_from_string(network_string)
-#    FP_Poset = get_FP_Poset(out_edges)[0]
-#    FP_keep = [node for node in FP_Poset.keys()]
-#
-#    Hb_list, Kni_list = get_Hb_Kni_list(database)
-#    Hb = {}
-#    for i in Hb_list:
-#        for j in Hb_list[i]:
-#            Hb[j] = i
-#    Kni = {}
-#    for i in Kni_list:
-#        for j in Kni_list[i]:
-#            Kni[j] = i
-#
-#    G = nx.DiGraph()
-#    for s in range(pg.size()):
-#        MGI_result = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(s))
-#        MGI = MGI_result.fetchone()[0]
-#        FP_result = [row[0] for row in c.execute('select Label from MorseGraphAnnotations where MorseGraphIndex is ' + str(MGI))]
-#        if len(FP_result) == 1 and FP_result[0][0:2] == 'FP':
-#            if set(FP_result).intersection(set(FP_keep)):
-#                sHb = Hb[((((pg.parameter(s)).logic())[0]).stringify())[6:-2]]
-#                sKni = Kni[((((pg.parameter(s)).logic())[3]).stringify())[6:-2]]
-#                for t in list(pg.adjacencies(s, 'codim1')):
-#                    MGI_result = c.execute('select MorseGraphIndex from Signatures where ParameterIndex is ' + str(t))
-#                    MGI = MGI_result.fetchone()[0]
-#                    FP_result = [row[0] for row in c.execute('select Label from MorseGraphAnnotations where MorseGraphIndex is ' + str(MGI))]
-#                    if len(FP_result) == 1 and FP_result[0][0:2] == 'FP':
-#                        if set(FP_result).intersection(set(FP_keep)):
-#                            tHb = Hb[((((pg.parameter(t)).logic())[0]).stringify())[6:-2]]
-#                            tKni = Kni[((((pg.parameter(t)).logic())[3]).stringify())[6:-2]] 
-#                            if sHb+1 == tHb and sKni == tKni:
-#                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
-#                            elif sHb == tHb and sKni+1 == tKni:
-#                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))
-#                            elif sHb == tHb and sKni == tKni:
-#                                G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
-#    return G
-#
-#def get_grad_graph_strict_bagged(database, network_string):
-#    pg = DSGRN.ParameterGraph(database.network)
-#    c = database.conn.cursor()
-#
-#    out_edges = get_number_out_edges_from_string(network_string)
-#    FP_Poset = get_FP_Poset(out_edges)[0]
-#    FP_keep = [node for node in FP_Poset.keys()]
-#
-#    Hb_list, Kni_list = get_Hb_Kni_list(database)
-#    Hb = {}
-#    for i in Hb_list:
-#        for j in Hb_list[i]:
-#            Hb[j] = i
-#    Kni = {}
-#    for i in Kni_list:
-#        for j in Kni_list[i]:
-#            Kni[j] = i
-#
-#    monostable_query_object = MonostableQuery(database)
-#    matches = monostable_query_object.matches()
-#
-#    mgs = {}
-#    for row in c.execute('select MorseGraphIndex, Label from MorseGraphAnnotations'):
-#        if row[1] in FP_keep:
-#            if row[0] in matches:
-#                if row[0] in mgs:
-#                    mgs[row[0]].append(row[1][0:2]) 
-#                else:
-#                    mgs[row[0]] = [row[1][0:2]] 
-#
-#    set_of_MGIm = list(i for i in mgs if mgs[i].count('FP') == 1)
-#
-#    string = 'select * from Signatures where MorseGraphIndex in ({seq})'.format(seq=','.join(['?'] * len(set_of_MGIm)))
-#    PGIset = [row[0] for row in c.execute(string, set_of_MGIm)]
-#
-#    G = nx.DiGraph()
-#    for s in PGIset:
-#        newVariable = (pg.parameter(s)).logic()
-#        sHb = Hb[((((pg.parameter(s)).logic())[0]).stringify())[6:-2]]
-#        sKni = Kni[((((pg.parameter(s)).logic())[3]).stringify())[6:-2]]
-#        for t in list(pg.adjacencies(s, 'codim1')):
-#            if t in PGIset:
-#                tHb = Hb[((((pg.parameter(t)).logic())[0]).stringify())[6:-2]]
-#                tKni = Kni[((((pg.parameter(t)).logic())[3]).stringify())[6:-2]] 
-#                if sHb+1 == tHb and sKni == tKni:
-#                    G.add_edge((sHb, sKni, s), (tHb, tKni, t))  
-#                elif sHb == tHb and sKni+1 == tKni:
-#                    G.add_edge((sHb, sKni, s), (tHb, tKni, t))
-#                elif sHb == tHb and sKni == tKni:
-#                    G.add_edge((sHb, sKni, s), (tHb, tKni, t)) 
-#    return G
-#
 def get_grad_graph_strict_bagged(database, network_string):
     pg = DSGRN.ParameterGraph(database.network)
     c = database.conn.cursor()
@@ -718,7 +623,7 @@ def get_gephi_graph_for_cond(database, network, G, graphml_filename, path_nodes 
     avg_two_way_edge_weight_for_OpenOrd(N, data = 'weight')
 
     ### Notice graph only has bagged FP in it, the condensation of the gradient graph only, without removing all nodes not in bag is much larger.
-    create_cond_subgraphs_graphml(database, N, diagP, path_nodes, scc, FP_Regions, start_set, stop_set, filename)
+    create_cond_subgraphs_graphml(database, N, k, diagP, path_nodes, scc, FP_Regions, start_set, stop_set, filename)
 
 def build_diag(Hb_max, Kni_max, breaks):
     keep = set()
